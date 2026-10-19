@@ -1,0 +1,18 @@
+# Package Identifier
+PackageIdentifier: egot51.cowboy-banner
+PackageType: zip
+InstallerType: zip
+UpgradeBehavior: install
+ReleaseDate: 2026-10-19
+Installers:
+- Architecture: x86, x64, arm64
+  InstallerUrl: https://github.com/egot51/cowboy-banner/releases/download/v1.0.0/cowboy-banner-1.0.0-windows.zip
+  InstallerSha256: 629240d2afbafcfa72691b934b8eb32ba2878a60205ecd2006a1d8fc005d079b
+  NestedInstallerType: portable
+  NestedInstallerFiles:
+  - RelativeFilePath: cowboy-banner.ps1
+    PortableCommandAlias: cowboy-banner
+  - RelativeFilePath: install.ps1
+    PortableCommandAlias: cowboy-banner-install
+ManifestType: installer
+ManifestVersion: 1.0.0

@@ -18,33 +18,36 @@ options=('!strip')
 
 check() {
     # Дымовой тест: картинка и меню должны печататься без ошибок.
-    COWBOY_ROOT="$startdir/files" COWBOY_ALWAYS=1 \
-        bash "$startdir/files/bin/cowboy-banner" > /dev/null
-    COWBOY_ROOT="$startdir/files" COWBOY_ALWAYS=1 COWBOY_BANNER=menu \
-        bash "$startdir/files/bin/cowboy-banner" > /dev/null
-    COWBOY_ROOT="$startdir/files" COWBOY_ALWAYS=1 COWBOY_THEME=any \
-        bash "$startdir/files/bin/cowboy-banner" > /dev/null
+    COWBOY_ROOT="$startdir/files/usr/share/cowboy-banner" COWBOY_ALWAYS=1 \
+        bash "$startdir/files/usr/bin/cowboy-banner" > /dev/null
+    COWBOY_ROOT="$startdir/files/usr/share/cowboy-banner" COWBOY_ALWAYS=1 COWBOY_BANNER=menu \
+        bash "$startdir/files/usr/bin/cowboy-banner" > /dev/null
+    COWBOY_ROOT="$startdir/files/usr/share/cowboy-banner" COWBOY_ALWAYS=1 COWBOY_THEME=any \
+        bash "$startdir/files/usr/bin/cowboy-banner" > /dev/null
 }
 
 package() {
     cd "$startdir/files"
 
+    # Дерево files/ - общее для всех форматов пакетов (deb, rpm, nix,
+    # scoop, chocolatey, winget), поэтому состав файлов у всех одинаковый.
     # install -D создаёт только ведущие каталоги; каталог-назначение
     # с завершающим слэшем должен существовать заранее.
     mkdir -p "$pkgdir/usr/share/cowboy-banner/art" "$pkgdir/usr/share/cowboy-banner/data"
 
-    install -Dm755 bin/cowboy-banner "$pkgdir/usr/bin/cowboy-banner"
-    install -Dm644 profile.ps1 "$pkgdir/usr/share/cowboy-banner/profile.ps1"
-    install -Dm644 art/*.txt "$pkgdir/usr/share/cowboy-banner/art/"
-    install -Dm644 data/* "$pkgdir/usr/share/cowboy-banner/data/"
-    install -Dm644 man/cowboy-banner.1 "$pkgdir/usr/share/man/man1/cowboy-banner.1"
-    # README и LICENSE лежат в корне пакета, а package() уже перешёл в files/
-    install -Dm644 "$startdir/README.md" "$pkgdir/usr/share/doc/$pkgname/README.md"
-    install -Dm644 "$startdir/LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+    install -Dm755 usr/bin/cowboy-banner "$pkgdir/usr/bin/cowboy-banner"
+    install -Dm644 usr/share/cowboy-banner/profile.ps1 "$pkgdir/usr/share/cowboy-banner/profile.ps1"
+    install -Dm644 usr/share/cowboy-banner/art/*.txt "$pkgdir/usr/share/cowboy-banner/art/"
+    install -Dm644 usr/share/cowboy-banner/data/* "$pkgdir/usr/share/cowboy-banner/data/"
+    install -Dm644 usr/share/man/man1/cowboy-banner.1 "$pkgdir/usr/share/man/man1/cowboy-banner.1"
+    install -Dm644 usr/share/doc/cowboy-banner/README.md "$pkgdir/usr/share/doc/cowboy-banner/README.md"
+    install -Dm644 usr/share/licenses/cowboy-banner/LICENSE "$pkgdir/usr/share/licenses/cowboy-banner/LICENSE"
+    install -Dm755 usr/lib/cowboy-banner/install.sh "$pkgdir/usr/lib/cowboy-banner/install.sh"
+    install -Dm755 usr/lib/cowboy-banner/remove.sh "$pkgdir/usr/lib/cowboy-banner/remove.sh"
 
     # Новые пользователи получают баннер в PowerShell сразу.
     # В bash и zsh автозапуск подключает post_install - у Arch нет общего
     # rc-фрагмента, который подхватили бы новые аккаунты.
-    install -Dm644 profile.ps1 \
+    install -Dm644 etc/skel/Default/.config/powershell/Microsoft.PowerShell_profile.ps1 \
         "$pkgdir/etc/skel/Default/.config/powershell/Microsoft.PowerShell_profile.ps1"
 }

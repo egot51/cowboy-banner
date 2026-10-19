@@ -1,0 +1,13 @@
+#!/bin/bash
+# prerm - удаление пакета cowboy-banner (Debian/Ubuntu).
+# Вся логика в общем хуке: /usr/lib/cowboy-banner/remove.sh
+
+set -e
+
+case "$1" in
+    remove|upgrade|deconfigure)
+        /usr/lib/cowboy-banner/remove.sh
+        ;;
+esac
+
+exit 0

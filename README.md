@@ -57,6 +57,34 @@ node tools\gen-profile.js "$env:USERPROFILE\Documents\WindowsPowerShell\profile.
 node tools\gen-cmd.js "$env:USERPROFILE\bin\cowboy.cmd"
 ```
 
+### Готовые пакеты для всех дистрибутивов
+
+Все форматы собираются из одного дерева файлов, поэтому состав файлов у них
+одинаковый.
+
+| Система | Установка |
+|---|---|
+| Arch, Manjaro | `yay -S cowboy-banner` |
+| Debian, Ubuntu, Mint | `sudo dpkg -i dist/cowboy-banner_1.0.0_all.deb` |
+| Fedora, RHEL, openSUSE | `sudo rpm -i dist/cowboy-banner-1.0.0-1*.rpm` |
+| NixOS и любой nix | `nix profile install github:egot51/cowboy-banner` |
+| Windows (Scoop) | `scoop install cowboy-banner` |
+| Windows (Chocolatey) | `choco install cowboy-banner` |
+| Windows (winget) | `winget install egot51.cowboy-banner` |
+
+Собрать всё самому:
+
+```powershell
+.\packaging\build-all.ps1      # Windows: .deb, zip, манифесты
+```
+
+```bash
+sh packaging/build-all.sh      # Linux: .deb, .rpm, zip, манифесты
+```
+
+Подробности, включая модуль для home-manager, - в
+[packaging/README.md](packaging/README.md).
+
 ### Linux (Arch)
 
 ```bash
@@ -108,8 +136,9 @@ PowerShell 5.1 разбор разметки при каждом старте с
 src/                 исходники: скрипт bash, профиль PowerShell, хуки, man
 tools/               генераторы (Node.js) и scenes.json - источник правды
 windows/             готовый профиль PowerShell и cowboy.cmd для Windows
-linux/               готовый AUR-пакет
-tests/               автотесты: bash, PKGBUILD, PowerShell, сверка раскраски
+linux/               AUR-пакет и общее дерево файлов linux/files
+packaging/           рецепты остальных форматов: deb, rpm, nix, scoop, choco, winget
+tests/               автотесты: bash, PKGBUILD, PowerShell, .deb, zip, манифесты
 ```
 
 Цвет считается для каждой позиции, а не подменой подстрок: подмена

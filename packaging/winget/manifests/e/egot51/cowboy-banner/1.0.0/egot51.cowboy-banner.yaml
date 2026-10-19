@@ -1,0 +1,26 @@
+PackageIdentifier: egot51.cowboy-banner
+PackageVersion: 1.0.0
+PackageName: cowboy-banner
+Publisher: egot51
+PublisherUrl: https://github.com/egot51
+PublisherSupportUrl: https://github.com/egot51/cowboy-banner/issues
+Author: CIwi
+License: MIT
+LicenseUrl: https://github.com/egot51/cowboy-banner/blob/main/LICENSE
+ShortDescription: Цветной ASCII-баннер при старте терминала
+Description: |-
+  Цветной ASCII-баннер при старте терминала: случайная картинка внутри
+  случайной темы, приветствие по времени суток и случайная поговорка.
+
+  Темы: Дикий Запад, космос, киберпанк, океан. Всего десять картинок.
+
+  Работает в PowerShell и cmd. Управление переменными COWBOY_THEME,
+  COWBOY_BANNER, COWBOY_HINT.
+ManifestType: installer
+ManifestVersion: 1.0.0
+Tags:
+- terminal
+- banner
+- ascii
+- powershell
+- cmd

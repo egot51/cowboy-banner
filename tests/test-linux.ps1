@@ -1,7 +1,7 @@
 ﻿# Тест Linux-профиля cowboy-banner на Windows PowerShell.
 # Логика та же, отличаются только пути и переменные окружения.
 $ErrorActionPreference = 'Stop'
-$root    = "$PSScriptRoot\..\linux\files"
+$root    = "$PSScriptRoot\..\linux\files\usr\share\cowboy-banner"
 $stateD  = Join-Path $env:TEMP ('cowboy-test-' + [Guid]::NewGuid().ToString('N').Substring(0, 8))
 New-Item -ItemType Directory -Path $stateD -Force | Out-Null
 

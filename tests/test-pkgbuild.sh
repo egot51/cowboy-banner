@@ -48,11 +48,14 @@ mkdir -p "$HOME/.config/powershell"
 printf '# мой bashrc\nexport EDITOR=vi\n' > "$HOME/.bashrc"
 printf '# мой профиль pwsh\n$OutputEncoding = [Console]::OutputEncoding\n' > \
     "$HOME/.config/powershell/Microsoft.PowerShell_profile.ps1"
+# Путь к общим хукам задаём ДО подключения .install: он читается при загрузке
+# файла, а пакет на этой машине не установлен.
+export COWBOY_HOOK_DIR="$AUR/files/usr/lib/cowboy-banner"
 # shellcheck source=/dev/null
 source "$AUR/cowboy-banner.install"
-# Пакет на этой машине не установлен, поэтому подменяем путь к исходному
-# профилю на файл из дерева AUR - функции читают переменные в момент вызова.
-pwsh_source="$AUR/files/profile.ps1"
+# Подменяем путь к исходному профилю на файл из дерева пакета - функции
+# читают переменные в момент вызова.
+pwsh_source="$AUR/files/usr/share/cowboy-banner/profile.ps1"
 
 post_install > "$WORK/post1.txt" 2>&1
 expect "блок добавлен в .bashrc" "$(grep -c '>>> cowboy-banner >>>' "$HOME/.bashrc")" "1"
@@ -75,7 +78,7 @@ pwsh_dir="$new_home/.config/powershell"
 pwsh_profile="$pwsh_dir/Microsoft.PowerShell_profile.ps1"
 post_install > /dev/null 2>&1
 expect "профиль pwsh создан с нуля" "$([ -s "$pwsh_profile" ] && echo yes)" "yes"
-expect "в новом профиле есть автозапуск" "$(grep -c 'Set-Alias -Name cowboy' "$pwsh_profile")" "1"
+expect "в новом профиле есть подключение баннера" "$(grep -c 'cowboy-banner/profile.ps1' "$pwsh_profile")" "1"
 
 echo "== отключение =="
 # HOME меняем именно export'ом: префиксное присваивание перед вызовом функции

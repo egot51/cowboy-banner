@@ -35,11 +35,23 @@ const write = (p, text, mode) => {
 // тот же файл открывается без сюрпризов.
 const writeBom = (p, text, mode) => write(p, "\uFEFF" + text, mode);
 
-// Арт уже с цветами: на Linux терминал всегда UTF-8, псевдографика не нуждается
-// в fallback-ветке, а читать файл через cat быстрее, чем разбирать разметку.
+// Единое дерево файлов пакета. Его раскладывают все форматы: AUR, deb, rpm,
+// nix, scoop, chocolatey, winget. Благодаря общему дереву дистрибутивы
+// не могут разойтись в составе файлов.
+//
 // Каталог называется files/, а не src/: src/ - служебный каталог makepkg
 // ($srcdir по умолчанию), и makepkg --cleanbuild удаляет его целиком вместе
 // с нашими файлами.
+// Дерево файлов пакета пересоздаём целиком: иначе в нём остаются файлы
+// от прошлой раскладки (раньше art/ и data/ лежали в корне files/).
+const filesDir = path.join(OUT, "files");
+if (fs.existsSync(filesDir)) {
+  fs.rmSync(filesDir, { recursive: true, force: true });
+}
+
+const FILES = filesDir;
+const P = (...parts) => path.join(FILES, ...parts);
+
 const scenes = {};
 for (const [id, s] of Object.entries(data.scenes)) {
   const art = paintArt(s.unicode.art, s.unicode.segments);
@@ -47,39 +59,47 @@ for (const [id, s] of Object.entries(data.scenes)) {
 }
 
 for (const [id, s] of Object.entries(scenes)) {
-  write(path.join(OUT, "files/art", `${id}.txt`), s.art.replace(/\n+$/, "") + "\n");
+  write(P("usr/share/cowboy-banner/art", `${id}.txt`), s.art.replace(/\n+$/, "") + "\n");
 }
 
 // Данные для bash и PowerShell: читаются с диска при каждом запуске, поэтому
 // вынесены из профиля - профиль остаётся лёгким, а тексты правятся без пересборки.
 const themes = data.themes;
 write(
-  path.join(OUT, "files/data/themes.list"),
+  P("usr/share/cowboy-banner/data/themes.list"),
   themes.map((t) => [t.id, t.ru, t.scenes.length].join("\t")).join("\n") + "\n"
 );
 for (const t of themes) {
-  write(path.join(OUT, "files/data", `${t.id}.scenes`), t.scenes.join("\n") + "\n");
-  write(path.join(OUT, "files/data", `${t.id}.titles`), t.scenes.map((s) => scenes[s].title).join("\n") + "\n");
-  write(path.join(OUT, "files/data", `${t.id}.greet`), t.greet.join("\n") + "\n");
-  write(path.join(OUT, "files/data", `${t.id}.say`), t.sayRu.join("\n") + "\n");
-  write(path.join(OUT, "files/data", `${t.id}.sayen`), t.sayEn.join("\n") + "\n");
+  write(P("usr/share/cowboy-banner/data", `${t.id}.scenes`), t.scenes.join("\n") + "\n");
+  write(P("usr/share/cowboy-banner/data", `${t.id}.titles`), t.scenes.map((s) => scenes[s].title).join("\n") + "\n");
+  write(P("usr/share/cowboy-banner/data", `${t.id}.greet`), t.greet.join("\n") + "\n");
+  write(P("usr/share/cowboy-banner/data", `${t.id}.say`), t.sayRu.join("\n") + "\n");
+  write(P("usr/share/cowboy-banner/data", `${t.id}.sayen`), t.sayEn.join("\n") + "\n");
 }
 
-// Статические файлы: скрипт, профиль PowerShell, хуки установки, man.
+// Статические файлы: скрипт, профиль PowerShell, man.
 // BOM - только профилю PowerShell: bash и данные с BOM ломаются (shebang,
 // первая строка через sed, лишний символ в арте).
 const statics = [
-  ["bin/cowboy-banner", "files/bin/cowboy-banner", 0o755, write],
-  ["profile.ps1", "files/profile.ps1", 0o644, writeBom],
-  ["cowboy-banner.install", "cowboy-banner.install", 0o644, write],
-  ["man/cowboy-banner.1", "files/man/cowboy-banner.1", 0o644, write],
+  ["bin/cowboy-banner", "usr/bin/cowboy-banner", 0o755, write],
+  ["profile.ps1", "usr/share/cowboy-banner/profile.ps1", 0o644, writeBom],
+  ["man/cowboy-banner.1", "usr/share/man/man1/cowboy-banner.1", 0o644, write],
+  // Хуки установки и удаления - общие для deb, rpm и AUR.
+  ["hooks/install.sh", "usr/lib/cowboy-banner/install.sh", 0o755, write],
+  ["hooks/remove.sh", "usr/lib/cowboy-banner/remove.sh", 0o755, write],
 ];
 for (const [from, to, mode, put] of statics) {
   // BOM в исходнике снимаем: writeBom добавит ровно один, иначе получится
   // два подряд и PowerShell увидит мусор в начале файла.
   const text = fs.readFileSync(path.join(SRC, from), "utf8").replace(/^\uFEFF/, "");
-  put(path.join(OUT, to), text, mode);
+  put(path.join(OUT, "files", to), text, mode);
 }
+
+// Хуки установки лежат в корне пакета - их читает pacman, а не файлы пакета.
+write(
+  path.join(OUT, "cowboy-banner.install"),
+  fs.readFileSync(path.join(SRC, "cowboy-banner.install"), "utf8")
+);
 
 const pkgdesc =
   "Цветной ASCII-баннер (Дикий Запад, космос, киберпанк, океан) при старте bash, zsh и PowerShell";
@@ -138,34 +158,37 @@ options=('!strip')
 
 check() {
     # Дымовой тест: картинка и меню должны печататься без ошибок.
-    COWBOY_ROOT="$startdir/files" COWBOY_ALWAYS=1 \\
-        bash "$startdir/files/bin/cowboy-banner" > /dev/null
-    COWBOY_ROOT="$startdir/files" COWBOY_ALWAYS=1 COWBOY_BANNER=menu \\
-        bash "$startdir/files/bin/cowboy-banner" > /dev/null
-    COWBOY_ROOT="$startdir/files" COWBOY_ALWAYS=1 COWBOY_THEME=any \\
-        bash "$startdir/files/bin/cowboy-banner" > /dev/null
+    COWBOY_ROOT="$startdir/files/usr/share/cowboy-banner" COWBOY_ALWAYS=1 \\
+        bash "$startdir/files/usr/bin/cowboy-banner" > /dev/null
+    COWBOY_ROOT="$startdir/files/usr/share/cowboy-banner" COWBOY_ALWAYS=1 COWBOY_BANNER=menu \\
+        bash "$startdir/files/usr/bin/cowboy-banner" > /dev/null
+    COWBOY_ROOT="$startdir/files/usr/share/cowboy-banner" COWBOY_ALWAYS=1 COWBOY_THEME=any \\
+        bash "$startdir/files/usr/bin/cowboy-banner" > /dev/null
 }
 
 package() {
     cd "$startdir/files"
 
+    # Дерево files/ - общее для всех форматов пакетов (deb, rpm, nix,
+    # scoop, chocolatey, winget), поэтому состав файлов у всех одинаковый.
     # install -D создаёт только ведущие каталоги; каталог-назначение
     # с завершающим слэшем должен существовать заранее.
     mkdir -p "$pkgdir/usr/share/cowboy-banner/art" "$pkgdir/usr/share/cowboy-banner/data"
 
-    install -Dm755 bin/cowboy-banner "$pkgdir/usr/bin/cowboy-banner"
-    install -Dm644 profile.ps1 "$pkgdir/usr/share/cowboy-banner/profile.ps1"
-    install -Dm644 art/*.txt "$pkgdir/usr/share/cowboy-banner/art/"
-    install -Dm644 data/* "$pkgdir/usr/share/cowboy-banner/data/"
-    install -Dm644 man/cowboy-banner.1 "$pkgdir/usr/share/man/man1/cowboy-banner.1"
-    # README и LICENSE лежат в корне пакета, а package() уже перешёл в files/
-    install -Dm644 "$startdir/README.md" "$pkgdir/usr/share/doc/$pkgname/README.md"
-    install -Dm644 "$startdir/LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+    install -Dm755 usr/bin/cowboy-banner "$pkgdir/usr/bin/cowboy-banner"
+    install -Dm644 usr/share/cowboy-banner/profile.ps1 "$pkgdir/usr/share/cowboy-banner/profile.ps1"
+    install -Dm644 usr/share/cowboy-banner/art/*.txt "$pkgdir/usr/share/cowboy-banner/art/"
+    install -Dm644 usr/share/cowboy-banner/data/* "$pkgdir/usr/share/cowboy-banner/data/"
+    install -Dm644 usr/share/man/man1/cowboy-banner.1 "$pkgdir/usr/share/man/man1/cowboy-banner.1"
+    install -Dm644 usr/share/doc/cowboy-banner/README.md "$pkgdir/usr/share/doc/cowboy-banner/README.md"
+    install -Dm644 usr/share/licenses/cowboy-banner/LICENSE "$pkgdir/usr/share/licenses/cowboy-banner/LICENSE"
+    install -Dm755 usr/lib/cowboy-banner/install.sh "$pkgdir/usr/lib/cowboy-banner/install.sh"
+    install -Dm755 usr/lib/cowboy-banner/remove.sh "$pkgdir/usr/lib/cowboy-banner/remove.sh"
 
     # Новые пользователи получают баннер в PowerShell сразу.
     # В bash и zsh автозапуск подключает post_install - у Arch нет общего
     # rc-фрагмента, который подхватили бы новые аккаунты.
-    install -Dm644 profile.ps1 \\
+    install -Dm644 etc/skel/Default/.config/powershell/Microsoft.PowerShell_profile.ps1 \\
         "$pkgdir/etc/skel/Default/.config/powershell/Microsoft.PowerShell_profile.ps1"
 }
 `
@@ -339,6 +362,23 @@ COWBOY_MAINTAINER="Имя <email>" node tools/gen-linux.js src <каталог-�
 
 Поле \`url\` уже проставлено на адрес этого репозитория.
 `
+);
+
+// Документация и лицензия - тоже в общем дереве, чтобы все форматы
+// (deb, rpm, nix, scoop, chocolatey, winget) положили их в одно и то же
+// место. Копируем после того, как README и LICENSE записаны в корень пакета.
+write(
+  P("usr/share/doc/cowboy-banner/README.md"),
+  fs.readFileSync(path.join(OUT, "README.md"), "utf8")
+);
+write(
+  P("usr/share/licenses/cowboy-banner/LICENSE"),
+  fs.readFileSync(path.join(OUT, "LICENSE"), "utf8")
+);
+// Профиль для новых пользователей PowerShell.
+writeBom(
+  P("etc/skel/Default/.config/powershell/Microsoft.PowerShell_profile.ps1"),
+  fs.readFileSync(path.join(SRC, "profile.ps1"), "utf8").replace(/^\uFEFF/, "")
 );
 
 // .gitignore для makepkg: собранные пакеты и рабочие файлы в репозиторий не идут.

@@ -1,0 +1,18 @@
+{
+    "version": "1.0.0",
+    "description": "Цветной ASCII-баннер при старте терминала: случайная картинка внутри случайной темы, приветствие и поговорка. Темы: Дикий Запад, космос, киберпанк, океан.",
+    "homepage": "https://github.com/egot51/cowboy-banner",
+    "license": "MIT",
+    "url": "https://github.com/egot51/cowboy-banner/releases/download/v1.0.0/cowboy-banner-1.0.0-windows.zip",
+    "hash": "629240d2afbafcfa72691b934b8eb32ba2878a60205ecd2006a1d8fc005d079b",
+    "bin": "cowboy-banner.ps1",
+    "pre_install": "powershell -NoProfile -ExecutionPolicy Bypass -File \"$dir\\install.ps1\"",
+    "uninstaller": "powershell -NoProfile -ExecutionPolicy Bypass -File \"$dir\\uninstall.ps1\"",
+    "checkver": "https://api.github.com/repos/egot51/cowboy-banner/releases/latest",
+    "autoupdate": {
+        "url": "https://github.com/egot51/cowboy-banner/releases/download/v$version/cowboy-banner-$version-windows.zip",
+        "hash": {
+            "type": "sha256"
+        }
+    }
+}

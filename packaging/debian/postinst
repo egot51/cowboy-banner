@@ -1,0 +1,13 @@
+#!/bin/bash
+# postinst - установка пакета cowboy-banner (Debian/Ubuntu).
+# Вся логика в общем хуке: /usr/lib/cowboy-banner/install.sh
+
+set -e
+
+case "$1" in
+    configure)
+        /usr/lib/cowboy-banner/install.sh
+        ;;
+esac
+
+exit 0

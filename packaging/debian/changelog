@@ -1,0 +1,7 @@
+cowboy-banner (1.0.0) unstable; urgency=medium
+
+  * Initial release: ASCII-баннеры при старте терминала.
+    Четыре темы (Дикий Запад, космос, киберпанк, океан), десять картинок,
+    поддержка bash, zsh и PowerShell 7.
+
+ -- CIwi <200380906+egot51@users.noreply.github.com>  Mon, 19 Oct 2026 00:00:00 +0000

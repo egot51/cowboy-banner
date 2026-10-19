@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Тесты bash-версии cowboy-banner. Запуск: bash test-linux.sh
-ROOT="$(cd "$(dirname "$0")/../linux/files" && pwd)"
-SCRIPT="$ROOT/bin/cowboy-banner"
+PAYLOAD="$(cd "$(dirname "$0")/../linux/files" && pwd)"
+ROOT="$PAYLOAD/usr/share/cowboy-banner"
+SCRIPT="$PAYLOAD/usr/bin/cowboy-banner"
 STATE_DIR="$(mktemp -d)"
 STATE="$STATE_DIR/cowboy-banner.state"
 pass=0
@@ -19,7 +20,7 @@ runv() { env COWBOY_ROOT="$ROOT" COWBOY_ALWAYS=1 XDG_RUNTIME_DIR="$STATE_DIR" "$
 runq() { env COWBOY_ROOT="$ROOT" XDG_RUNTIME_DIR="$STATE_DIR" "$@" bash "$SCRIPT"; }
 
 echo "== синтаксис =="
-for f in "$SCRIPT" "$ROOT/../cowboy-banner.install" "$ROOT/../PKGBUILD"; do
+for f in "$SCRIPT" "$PAYLOAD/../cowboy-banner.install" "$PAYLOAD/../PKGBUILD"; do
     if bash -n "$f" 2>/dev/null; then ok "bash -n $(basename "$f")"; else bad "bash -n $(basename "$f")"; fi
 done
 

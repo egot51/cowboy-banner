@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>cowboy-banner</id>
+    <version>1.0.0</version>
+    <packageSourceUrl>https://github.com/egot51/cowboy-banner</packageSourceUrl>
+    <owners>egot51</owners>
+    <title>cowboy-banner</title>
+    <authors>CIwi</authors>
+    <projectUrl>https://github.com/egot51/cowboy-banner</projectUrl>
+    <licenseUrl>https://github.com/egot51/cowboy-banner/blob/main/LICENSE</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <projectSourceUrl>https://github.com/egot51/cowboy-banner</projectSourceUrl>
+    <docsUrl>https://github.com/egot51/cowboy-banner/blob/main/windows/README.md</docsUrl>
+    <bugTrackerUrl>https://github.com/egot51/cowboy-banner/issues</bugTrackerUrl>
+    <tags>terminal banner ascii powershell cmd ascii-art</tags>
+    <summary>Цветной ASCII-баннер при старте терминала</summary>
+    <description>
+Цветной ASCII-баннер при старте терминала: случайная картинка внутри случайной темы, приветствие по времени суток и случайная поговорка.
+
+Темы: Дикий Запад, космос, киберпанк, океан. Всего десять картинок.
+
+Работает в PowerShell и cmd. Управление переменными COWBOY_THEME, COWBOY_BANNER, COWBOY_HINT.
+    </description>
+    <releaseNotes>https://github.com/egot51/cowboy-banner/releases/tag/v1.0.0</releaseNotes>
+  </metadata>
+  <files>
+    <file src="tools\**" target="tools" />
+  </files>
+</package>

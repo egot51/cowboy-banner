@@ -1,0 +1,18 @@
+Package: cowboy-banner
+Version: 1.0.0
+Section: misc
+Priority: optional
+Architecture: all
+Depends: bash, coreutils
+Recommends: zsh
+Suggests: powershell
+Maintainer: CIwi <200380906+egot51@users.noreply.github.com>
+Homepage: https://github.com/egot51/cowboy-banner
+Description: Цветной ASCII-баннер при старте терминала
+ Случайная картинка внутри случайной темы, приветствие по времени суток
+ и случайная поговорка по теме. Четыре темы: Дикий Запад, космос, киберпанк
+ и океан, десять картинок.
+ .
+ Работает в bash, zsh и PowerShell 7. Переменные COWBOY_THEME, COWBOY_BANNER,
+ COWBOY_HINT и COWBOY_ALWAYS. Пакет ничего не делает сам: postinst только
+ дописывает вызов в rc-файлы с бэкапом, а prerm убирает эти строки.
