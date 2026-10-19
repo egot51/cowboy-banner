@@ -1,0 +1,109 @@
+#!/bin/bash
+# Хуки пакета cowboy-banner.
+#
+# Пакет только раскладывает файлы в /usr. Всё, что касается личных настроек
+# (rc-файлы и профиль PowerShell), подключается здесь, с бэкапом и без дублей.
+
+begin_marker="# >>> cowboy-banner >>>"
+end_marker="# <<< cowboy-banner <<<"
+pwsh_dir="$HOME/.config/powershell"
+pwsh_profile="$pwsh_dir/Microsoft.PowerShell_profile.ps1"
+pwsh_source="/usr/share/cowboy-banner/profile.ps1"
+
+banner_block='# >>> cowboy-banner >>>
+# Картинка при старте терминала (управление: export COWBOY_THEME=ocean)
+case $- in
+    *i*) [ -x /usr/bin/cowboy-banner ] && /usr/bin/cowboy-banner ;;
+esac
+# <<< cowboy-banner <<<'
+
+pwsh_block='# >>> cowboy-banner >>>
+if (Test-Path /usr/share/cowboy-banner/profile.ps1) { . /usr/share/cowboy-banner/profile.ps1 }
+# <<< cowboy-banner <<<'
+
+# Дописать блок в rc-файл: не дублировать, с бэкапом при первом изменении.
+wire_rc() {
+    rc="$1"
+    block="$2"
+    [ -n "$rc" ] || return 0
+    if [ ! -e "$rc" ]; then
+        mkdir -p "$(dirname "$rc")" 2>/dev/null || return 0
+        printf '%s\n' "$block" > "$rc" || return 0
+        return 0
+    fi
+    grep -qF "$begin_marker" "$rc" 2>/dev/null && return 0
+    [ -e "$rc.cowboy-banner.bak" ] || cp -p "$rc" "$rc.cowboy-banner.bak" 2>/dev/null || :
+    printf '\n%s\n' "$block" >> "$rc" 2>/dev/null || :
+    return 0
+}
+
+# Вырезать наш блок обратно, остальное не трогая.
+strip_rc() {
+    rc="$1"
+    [ -e "$rc" ] || return 0
+    grep -qF "$begin_marker" "$rc" 2>/dev/null || return 0
+    tmp=$(mktemp 2>/dev/null) || return 0
+    awk -v b="$begin_marker" -v e="$end_marker" '
+        $0 == b  { skip = 1; next }
+        $0 == e  { skip = 0; next }
+        !skip    { print }
+    ' "$rc" > "$tmp" 2>/dev/null && cat "$tmp" > "$rc" 2>/dev/null
+    rm -f "$tmp" 2>/dev/null
+    return 0
+}
+
+post_install() {
+    wired=".bashrc"
+    wire_rc "$HOME/.bashrc" "$banner_block"
+
+    [ -f "$HOME/.zshrc" ] && wired="$wired, .zshrc"
+    wire_rc "$HOME/.zshrc" "$banner_block"
+
+    # Подключаем профиль PowerShell всегда: строка внутри проверяет Test-Path
+    # и ничего не делает, если файла ещё нет. Отдельно - копируем готовый
+    # профиль целиком, когда у пользователя своего ещё не было.
+    if [ -f "$pwsh_profile" ]; then
+        wire_rc "$pwsh_profile" "$pwsh_block"
+        wired="$wired, профиль PowerShell"
+    elif [ -f "$pwsh_source" ]; then
+        mkdir -p "$pwsh_dir" 2>/dev/null || :
+        if cp "$pwsh_source" "$pwsh_profile" 2>/dev/null; then
+            wired="$wired, профиль PowerShell (создан)"
+        fi
+    fi
+
+    cat <<EOF
+
+  cowboy-banner установлен.
+
+    Текущий терминал:      cowboy-banner
+    Меню тем:               COWBOY_BANNER=menu cowboy-banner
+    Сменить тему:           export COWBOY_THEME=ocean   (для bash/zsh)
+                            \$env:COWBOY_THEME = 'ocean' (PowerShell)
+    Выключить совсем:       export COWBOY_BANNER=none
+    Подробности:            man cowboy-banner  /  /usr/share/doc/cowboy-banner/README.md
+
+  Подключено: $wired
+  Бэкапы: *.cowboy-banner.bak (при удалении пакета блоки убираются сами)
+
+EOF
+}
+
+pre_remove() {
+    strip_rc "$HOME/.bashrc"
+    strip_rc "$HOME/.zshrc"
+    strip_rc "$pwsh_profile"
+    :
+}
+
+post_remove() {
+    cat <<EOF
+
+  cowboy-banner удалён.
+
+    Настройки убраны из: ~/.bashrc, ~/.zshrc, профиля PowerShell.
+    Прежние версии файлов: *.cowboy-banner.bak (если пакет что-то менял).
+    Картинки лежат в /usr/share/cowboy-banner - их можно удалить вручную.
+
+EOF
+}

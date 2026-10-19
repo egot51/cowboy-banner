@@ -1,0 +1,11 @@
+# Сборки makepkg и прочие артефакты сборки.
+pkg/
+*.pkg.tar.*
+*.src.tar.*
+.makepkg*
+
+# Превью сцен - их генерирует tools/gen-scene.js, в репозитории они не нужны.
+tools/scene-*.txt
+
+# node_modules, если появятся.
+node_modules/

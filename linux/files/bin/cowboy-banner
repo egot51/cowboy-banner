@@ -1,0 +1,262 @@
+#!/usr/bin/env bash
+# cowboy-banner — цветной ASCII-баннер при старте терминала.
+#
+# Переменные окружения (одинаково для bash, zsh и PowerShell):
+#   COWBOY_THEME   wildwest | space | cyber | ocean | any | menu
+#   COWBOY_BANNER  не задана - рисовать картинку; menu - меню тем;
+#                  none - молчать; plain/ascii - без цвета; off = menu
+#   COWBOY_HINT    on - подсказка и метка [тема] под картинкой
+#   COWBOY_ALWAYS  1 - печатать даже без терминала и в неинтерактивном шелле
+#   COWBOY_ROOT    где лежит арт (по умолчанию /usr/share/cowboy-banner)
+
+set -u
+
+ROOT="${COWBOY_ROOT:-/usr/share/cowboy-banner}"
+ART="$ROOT/art"
+DATA="$ROOT/data"
+STATE="${XDG_RUNTIME_DIR:-/tmp}/cowboy-banner.state"
+DEFAULT_THEME=wildwest
+
+ESC=$'\033'
+C_RESET="${ESC}0m"
+C_HI="${ESC}1;38;5;84m"      # приветствие
+C_NAME="${ESC}38;5;245m"     # имя пользователя
+C_DIM="${ESC}38;5;242m"      # подсказки и служебные строки
+C_MARK="${ESC}1;38;5;120m"   # активная тема в меню
+C_TEXT="${ESC}38;5;223m"     # обычный текст меню
+C_SAY="${ESC}38;5;223m"      # поговорка
+
+# Чистое значение переменной: без пробелов, в нижнем регистре.
+# ("set X=off " даёт "off " - классическая ловушка, сравнение не проходит.)
+clean() {
+    local v="${1:-}"
+    v="${v//[[:space:]]/}"
+    printf '%s' "${v,,}"
+}
+
+# Цвет разрешён, если не выключен флагом и нет NO_COLOR (https://no-color.org).
+colored() {
+    case "$MODE" in
+        plain | ascii | nocolor | no-color) return 1 ;;
+    esac
+    [ -n "${NO_COLOR:-}" ] && return 1
+    return 0
+}
+
+emit() {
+    if colored; then
+        printf '%s\n' "$1"
+    else
+        printf '%s\n' "$1" | sed "s/${ESC}\[[0-9;]*m//g"
+    fi
+}
+
+strip_file() { sed "s/${ESC}\[[0-9;]*m//g" "$1"; }
+
+# Файлы данных могут прийти с CRLF - например, после чекаута на Windows, где
+# git по умолчанию переводит строки. Тогда в id сцены попадает \r и картинка
+# не находится. Поэтому читаем через sed, который убирает хвост CR.
+read_lines() {
+    [ -r "$1" ] || return 1
+    sed 's/\r$//' "$1"
+}
+
+# Случайная строка файла. Файлы всегда заканчиваются переводом строки,
+# иначе wc -l не увидит последнюю.
+pick_line() {
+    local f="$1" n
+    n=$(read_lines "$f" 2>/dev/null | wc -l) || n=0
+    n="${n// /}"
+    [ "$n" -gt 0 ] || return 1
+    read_lines "$f" | sed -n "$(( RANDOM % n + 1 ))p"
+}
+
+theme_ids() { read_lines "$DATA/themes.list" 2>/dev/null | cut -f1; }
+
+resolve_theme() {
+    local want ids found
+    want=$(clean "${COWBOY_THEME:-}")
+    [ -n "$want" ] || want="$DEFAULT_THEME"
+    if [ "$want" = "any" ]; then
+        ids=$(theme_ids)
+        found=$(printf '%s\n' "$ids" | sed '/^$/d' | shuf -n 1 2>/dev/null)
+        printf '%s' "${found:-$DEFAULT_THEME}"
+        return 0
+    fi
+    if printf '%s\n' "$(theme_ids)" | grep -qx -- "$want"; then
+        printf '%s' "$want"
+    else
+        printf '%s' "$DEFAULT_THEME"
+    fi
+}
+
+# Локаль по приоритету LC_ALL -> LC_CTYPE -> LANG. Склеивать их в одну строку
+# нельзя: "C" + "C" даёт "cc", которое не похоже ни на одну проверку.
+locale_is_c() {
+    local loc
+    loc=$(clean "${LC_ALL:-}")
+    [ -n "$loc" ] || loc=$(clean "${LC_CTYPE:-}")
+    [ -n "$loc" ] || loc=$(clean "${LANG:-}")
+    case "$loc" in
+        c | posix | c.* | posix.*) return 0 ;;
+    esac
+    return 1
+}
+
+part_of_day() {
+    local hour="${HOUR:-$(date +%-H)}"
+    if [ "$hour" -lt 5 ]; then
+        printf '%s' "ДОБРАЯ НОЧЬ"
+    elif [ "$hour" -lt 12 ]; then
+        printf '%s' "ДОБРОЕ УТРО"
+    elif [ "$hour" -lt 18 ]; then
+        printf '%s' "ДОБРЫЙ ДЕНЬ"
+    else
+        printf '%s' "ДОБРЫЙ ВЕЧЕР"
+    fi
+}
+
+hint_on() {
+    case "$(clean "${COWBOY_HINT:-}")" in
+        on | 1 | yes | true) return 0 ;;
+    esac
+    return 1
+}
+
+show_menu() {
+    local cur id ru cnt mark note
+    cur=$(resolve_theme)
+
+    emit ""
+    emit "  ${C_HI}Т Е М Ы   Б А Н Н Е Р О В${C_RESET}   ${C_DIM}- что рисовать?${C_RESET}"
+    emit "  ${C_DIM}│${C_RESET}"
+    while IFS="$(printf '\t')" read -r id ru cnt; do
+        [ -n "${id:-}" ] || continue
+        if [ "$id" = "$cur" ]; then
+            mark="${C_MARK}* ${id}${C_RESET}"
+            note="${C_MARK}сейчас${C_RESET}"
+        else
+            mark="${C_TEXT}  ${id}${C_RESET}"
+            note="${C_TEXT}${cnt} картинок${C_RESET}"
+        fi
+        emit "  ${C_DIM}│${C_RESET} ${mark}   ${C_TEXT}${ru}${C_RESET}   ${note}"
+    done < <(read_lines "$DATA/themes.list")
+
+    local any_mark="${C_TEXT}  any${C_RESET}"
+    [ "$cur" = "any" ] && any_mark="${C_MARK}* any${C_RESET}"
+    emit "  ${C_DIM}│${C_RESET} ${any_mark}   ${C_TEXT}любая тема${C_RESET}   ${C_TEXT}(случайно)${C_RESET}"
+    emit "  ${C_DIM}│${C_RESET}"
+    emit "  ${C_DIM}│${C_RESET} ${C_TEXT}Переключить тему (для bash и zsh):${C_RESET}"
+    while read -r id; do
+        [ -n "${id:-}" ] || continue
+        emit "  ${C_DIM}│${C_RESET}     ${C_DIM}export COWBOY_THEME=${id}${C_RESET}"
+    done < <(read_lines "$DATA/themes.list")
+    emit "  ${C_DIM}│${C_RESET}     ${C_DIM}export COWBOY_THEME=any${C_RESET}   ${C_DIM}(каждая картинка случайная)${C_RESET}"
+    emit "  ${C_DIM}│${C_RESET}"
+    emit "  ${C_DIM}│${C_RESET} ${C_TEXT}Что бывает в COWBOY_BANNER:${C_RESET}"
+    emit "  ${C_DIM}│${C_RESET}     ${C_DIM}(не задана)${C_RESET}  рисовать картинку   ${C_DIM}export COWBOY_BANNER=${C_RESET}"
+    emit "  ${C_DIM}│${C_RESET}     ${C_DIM}menu${C_RESET}         это меню           ${C_DIM}export COWBOY_BANNER=menu${C_RESET}"
+    emit "  ${C_DIM}│${C_RESET}     ${C_DIM}none${C_RESET}         молчать            ${C_DIM}export COWBOY_BANNER=none${C_RESET}"
+    emit "  ${C_DIM}│${C_RESET}     ${C_DIM}plain${C_RESET}        без цвета          ${C_DIM}export COWBOY_BANNER=plain${C_RESET}"
+    emit "  ${C_DIM}│${C_RESET}"
+    emit "  ${C_DIM}│${C_RESET} ${C_TEXT}Подсказки под картинкой:${C_RESET} ${C_DIM}export COWBOY_HINT=on${C_RESET}"
+    emit "  ${C_DIM}│${C_RESET} ${C_TEXT}Выключить совсем:${C_RESET}        ${C_DIM}export COWBOY_BANNER=none${C_RESET}"
+    emit ""
+}
+
+# Молчание в пайпах и при перенаправлении: иначе мусор в выводе скриптов.
+# В скриптах и тестах включается COWBOY_ALWAYS=1.
+# Интерактивность шелла скрипт не проверяет: $- у дочернего процесса всегда без i,
+# поэтому проверку $- делает вызывающий rc-фрагмент (см. cowboy-banner.install).
+guarded() {
+    case "$MODE" in
+        none | silent | quiet) return 1 ;;
+    esac
+    [ -t 1 ] && return 0
+    [ "${COWBOY_ALWAYS:-}" = "1" ]
+}
+
+main() {
+    [ -r "$DATA/themes.list" ] || return 0
+
+    case "$MODE" in
+        menu | off)
+            show_menu
+            return 0
+            ;;
+    esac
+
+    local theme scene ids n i last art who hi fortune
+    theme=$(resolve_theme)
+    local want
+    want=$(clean "${COWBOY_THEME:-}")
+    if [ "$want" = "menu" ]; then
+        show_menu
+        return 0
+    fi
+
+    [ -r "$DATA/$theme.scenes" ] || return 0
+    mapfile -t ids < <(read_lines "$DATA/$theme.scenes")
+    n=${#ids[@]}
+    [ "$n" -gt 0 ] || return 0
+
+    i=$(( RANDOM % n ))
+    last=""
+    [ -r "$STATE" ] && last=$(head -n 1 "$STATE" 2>/dev/null)
+    # Соседние запуски не должны показывать одну и ту же картинку.
+    if [ "$n" -gt 1 ] && [ "${ids[$i]}" = "$last" ]; then
+        i=$(( (i + (RANDOM % (n - 1)) + 1) % n ))
+    fi
+    scene="${ids[$i]}"
+    # Каталог для state может не существовать (например, XDG_RUNTIME_DIR в тесте).
+    # 2>/dev/null ставим ПЕРЕД перенаправлением вывода: иначе сообщение bash о
+    # неудачном открытии файла уйдёт в исходный stderr.
+    [ -d "${STATE%/*}" ] || mkdir -p "${STATE%/*}" 2>/dev/null || :
+    printf '%s\n' "$scene" 2>/dev/null > "$STATE" || :
+
+    art="$ART/$scene.txt"
+    [ -r "$art" ] || return 0
+    if colored; then
+        tr -d '\r' < "$art"
+    else
+        strip_file "$art" | tr -d '\r'
+    fi
+
+    who="${USER:-$(id -un 2>/dev/null || printf 'ковбой')}"
+    who=$(printf '%s' "$who" | tr '[:lower:]' '[:upper:]')
+
+    hi=$(pick_line "$DATA/$theme.greet") || hi="$DEFAULT_THEME"
+    # Английская поговорка - если терминал в C/POSIX-локали, иначе кириллица в вопросе.
+    if locale_is_c; then
+        fortune=$(pick_line "$DATA/$theme.sayen") || fortune=""
+    else
+        fortune=$(pick_line "$DATA/$theme.say") || fortune=""
+    fi
+    [ -n "$fortune" ] || fortune=$(pick_line "$DATA/$theme.sayen") || fortune=""
+
+    if colored; then
+        local tag="" tail=""
+        if hint_on; then
+            tag=" ${C_NAME}[$theme]${C_RESET}"
+            tail=$'\n'"${C_DIM}  COWBOY_THEME=<тема> - сменить тему   |   COWBOY_BANNER=menu - меню тем${C_RESET}"
+        fi
+        printf '\n'
+        printf '  %s%s,%s %s%s%s %s%s%s%s\n' \
+            "$C_HI" "$hi" "$C_RESET" "$C_NAME" "$who" "$C_RESET" \
+            "$C_HI" "$(part_of_day)" "$C_RESET" "$tag"
+        [ -n "$fortune" ] && printf '%s  «%s»%s\n' "$C_SAY" "$fortune" "$C_RESET"
+        [ -n "$tail" ] && printf '%s' "$tail"
+    else
+        printf '\n'
+        printf '  %s, %s!   %s' "$hi" "$who" "$(part_of_day)"
+        hint_on && printf '   [%s]' "$theme"
+        printf '\n'
+        [ -n "$fortune" ] && printf '  %s\n' "$fortune"
+        hint_on && printf '  COWBOY_THEME=<тема> - сменить тему   |   COWBOY_BANNER=menu - меню тем\n'
+    fi
+    return 0
+}
+
+MODE=$(clean "${COWBOY_BANNER:-${COWBOY_CMD:-}}")
+guarded || exit 0
+main

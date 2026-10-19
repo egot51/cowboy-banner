@@ -1,0 +1,106 @@
+.TH COWBOY\-BANNER 1 "2026" "cowboy-banner 1.0.0" "User Commands"
+.SH NAME
+cowboy\-banner \- ASCII/Unicode art banner printed at shell startup
+.SH SYNOPSIS
+.B cowboy\-banner
+.SH DESCRIPTION
+Prints a random 76x24 ASCII/Unicode picture with a greeting and a random
+saying. The theme is picked by
+.BR COWBOY_THEME ,
+the picture inside the theme is random and never repeats the one from the
+previous shell, unless the theme has only a single picture.
+.PP
+Runs automatically from
+.IR ~/.bashrc ,
+.I ~/.zshrc
+and the PowerShell profile (see
+.IR cowboy\-banner.install ).
+.SS Themes
+.TP
+.B wildwest
+Дикий Запад, 4 картинки (default)
+.TP
+.B space
+Космос, 2 картинки
+.TP
+.B cyber
+Киберпанк, 2 картинки
+.TP
+.B ocean
+Океан, 2 картинки
+.TP
+.B any
+случайная тема при каждом запуске
+.TP
+.B menu
+показать меню тем
+.SH ENVIRONMENT
+.TP
+.B COWBOY_THEME
+wildwest (default), space, cyber, ocean, any, menu.
+.TP
+.B COWBOY_BANNER
+unset or empty - draw the picture; \fBmenu\fR (\fBoff\fR) - theme menu;
+\fBnone\fR - print nothing; \fBplain\fR, \fBascii\fR - picture without color.
+.TP
+.B COWBOY_CMD
+alias for COWBOY_BANNER, in case the latter name is already taken.
+.TP
+.B COWBOY_HINT
+\fBon\fR, \fB1\fR, \fByes\fR, \fBtrue\fR - show the hint line and the
+\fB[theme]\fR tag under the picture. Off by default.
+.TP
+.B COWBOY_ALWAYS
+\fB1\fR - print even when stdout is not a terminal (useful in scripts
+and tests).
+.TP
+.B NO_COLOR
+if set, colors are disabled (see https://no-color.org).
+.TP
+.B COWBOY_ROOT
+directory with the art and data, default /usr/share/cowboy-banner.
+.SH EXAMPLES
+Show the theme menu:
+.PP
+.RS
+COWBOY_BANNER=menu cowboy\-banner
+.RE
+.PP
+Same, but picture without color:
+.PP
+.RS
+COWBOY_BANNER=plain cowboy\-banner
+.RE
+.PP
+Switch theme for good (bash):
+.PP
+.RS
+echo 'export COWBOY_THEME=ocean' >> ~/.bashrc
+.RE
+.PP
+Switch theme for good (PowerShell):
+.PP
+.RS
+pwsh -c '$env:COWBOY_THEME = "ocean"'
+.RE
+.SH FILES
+.TP
+.I /usr/bin/cowboy-banner
+the script itself
+.TP
+.I /usr/share/cowboy-banner/art
+10 pre-rendered pictures with ANSI colors
+.TP
+.I /usr/share/cowboy-banner/data
+greetings, sayings and scene lists
+.TP
+.I /usr/share/cowboy-banner/profile.ps1
+PowerShell version
+.TP
+.I ~/.bashrc, ~/.zshrc, ~/.config/powershell/Microsoft.PowerShell_profile.ps1
+where the banner is started
+.TP
+.I ${XDG_RUNTIME_DIR:-/tmp}/cowboy-banner.state
+last shown picture, so it does not repeat
+.SH SEE ALSO
+The README in /usr/share/doc/cowboy-banner.
