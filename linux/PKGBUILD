@@ -5,9 +5,8 @@ pkgver=1.0.0
 pkgrel=1
 pkgdesc='Цветной ASCII-баннер (Дикий Запад, космос, киберпанк, океан) при старте bash, zsh и PowerShell'
 arch=('any')
-# Ссылка на страницу пакета в AUR. Если исходники выложить отдельно
-# (например, на GitHub), укажите здесь его адрес - makepkg требует url,
-# а AUR показывает его на странице пакета.
+# Адрес исходников пакета. makepkg требует url, а AUR показывает его
+# на странице пакета.
 url='https://github.com/egot51/cowboy-banner'
 license=('MIT')
 depends=('bash' 'coreutils')
