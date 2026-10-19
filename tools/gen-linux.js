@@ -110,9 +110,15 @@ SOFTWARE.
 `
 );
 
+// Мейнтейнер. Настоящий email нужен только в копии пакета для AUR (там он
+// обязателен), поэтому в публичный репозиторий он не попадает: соберите
+// пакет для AUR с переменной окружения
+//   COWBOY_MAINTAINER="Имя <email>" node tools/gen-linux.js src <каталог>
+const MAINTAINER = process.env.COWBOY_MAINTAINER || "CIwi";
+
 write(
   path.join(OUT, "PKGBUILD"),
-  `# Maintainer: CIwi <egotka09@gmail.com>
+  `# Maintainer: ${MAINTAINER}
 # Собирать нечего: картинки, скрипты и данные уже лежат в files/.
 pkgname=cowboy-banner
 pkgver=${PKGVER}
@@ -323,10 +329,16 @@ MIT, см. \`LICENSE\`.
 6. Пакет появится в AUR после проверки модератором. Дальше его ставят через
    \`yay -S cowboy-banner\` или \`paru -S cowboy-banner\`.
 
-Перед отправкой поправьте в \`PKGBUILD\` строку \`# Maintainer:\` (ваш email -
-он же пойдёт в SSH-URL репозитория AUR) и проверьте поле \`url\`. Сейчас там
-страница самого пакета в AUR; если исходники выложить отдельно, укажите
-адрес этого репозитория.
+Перед отправкой в \`PKGBUILD\` должна быть строка \`# Maintainer: Имя <email>\` -
+email мейнтейнера обязателен для AUR (он же пойдёт в SSH-URL репозитория
+AUR). В публичной копии репозитория настоящего email нет: там стоит только
+имя, а пакет для AUR собирается с переменной окружения:
+
+\`\`\`bash
+COWBOY_MAINTAINER="Имя <email>" node tools/gen-linux.js src <каталог-пакета>
+\`\`\`
+
+Поле \`url\` уже проставлено на адрес этого репозитория.
 `
 );
 

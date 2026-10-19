@@ -1,4 +1,4 @@
-# Maintainer: CIwi <egotka09@gmail.com>
+# Maintainer: CIwi
 # Собирать нечего: картинки, скрипты и данные уже лежат в files/.
 pkgname=cowboy-banner
 pkgver=1.0.0
