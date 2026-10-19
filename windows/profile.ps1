@@ -10,7 +10,7 @@
 #      setx COWBOY_BANNER ascii    ASCII-версия (на случай старой кодировки)
 #      setx COWBOY_BANNER plain    без цвета
 #
-#  Арт собран скриптами gen-scene.js + gen-profile.js в %TEMP%\opencode
+#  Арт собран скриптами tools/gen-scene.js + tools/gen-profile.js
 # ══════════════════════════════════════════════════════════════════════════
 
 $global:CowboyArt = @{
