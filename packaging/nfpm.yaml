@@ -1,0 +1,67 @@
+# Сгенерировано: node packaging/gen-nfpm.js
+# Правьте debian/control и перегенерируйте - руками не правим.
+name: cowboy-banner
+arch: all
+platform: linux
+version: 1.0.0
+release: 1
+section: misc
+priority: optional
+maintainer: CIwi <200380906+egot51@users.noreply.github.com>
+vendor: egot51
+homepage: https://github.com/egot51/cowboy-banner
+license: MIT
+depends:
+  - bash
+  - coreutils
+recommends:
+  - zsh
+description: |
+  Цветной ASCII-баннер при старте терминала
+
+contents:
+  # Скрипт баннера и его данные.
+  - src: C:/Users/CIwi/source/repos/cowboy-banner/linux/files/usr/bin/cowboy-banner
+    dst: /usr/bin/cowboy-banner
+    file_info:
+      mode: 0755
+  - src: C:/Users/CIwi/source/repos/cowboy-banner/linux/files/usr/share/cowboy-banner
+    dst: /usr/share/cowboy-banner
+    file_info:
+      mode: 0644
+  # Общие хуки установки и удаления - их зовут и postinstall, и preremove.
+  - src: C:/Users/CIwi/source/repos/cowboy-banner/linux/files/usr/lib/cowboy-banner
+    dst: /usr/lib/cowboy-banner
+    file_info:
+      mode: 0755
+  # Справка и лицензия.
+  - src: C:/Users/CIwi/source/repos/cowboy-banner/linux/files/usr/share/man
+    dst: /usr/share/man
+    file_info:
+      mode: 0644
+  - src: C:/Users/CIwi/source/repos/cowboy-banner/linux/files/usr/share/doc
+    dst: /usr/share/doc
+    file_info:
+      mode: 0644
+  - src: C:/Users/CIwi/source/repos/cowboy-banner/linux/files/usr/share/licenses
+    dst: /usr/share/licenses
+    file_info:
+      mode: 0644
+  # Профиль для новых пользователей PowerShell.
+  - src: C:/Users/CIwi/source/repos/cowboy-banner/linux/files/etc/skel
+    dst: /etc/skel
+    file_info:
+      mode: 0644
+
+scripts:
+  # nfpm вставляет в скриптлет СОДЕРЖИМОЕ файла, поэтому тут указываем
+  # локальные пути, а не те, что окажутся в пакете.
+  postinstall: ./src/hooks/install.sh
+  preremove: ./src/hooks/remove.sh
+
+rpm:
+  group: Applications/System
+  compression: xz
+
+deb:
+  compression: xz

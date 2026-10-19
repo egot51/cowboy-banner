@@ -26,7 +26,7 @@ files/
 |---|---|---|---|
 | AUR | Arch, Manjaro | `makepkg` | `linux/PKGBUILD` |
 | deb | Debian, Ubuntu, Mint | свой сборщик на Node | `packaging/debian/`, `packaging/build-deb.js` |
-| rpm | Fedora, RHEL, openSUSE | `rpmbuild` | `packaging/rpm/cowboy-banner.spec` |
+| rpm | Fedora, RHEL, openSUSE | `nfpm` или `rpmbuild` | `packaging/nfpm.yaml`, `packaging/rpm/cowboy-banner.spec` |
 | nix | NixOS, любой nix-дистрибутив | `nix build` | `packaging/nix/flake.nix` |
 | zip | Windows (Scoop, Chocolatey, winget) | свой сборщик на Node | `packaging/build-zip.js` |
 
@@ -66,7 +66,19 @@ sh packaging/build-all.sh
 sudo rpm -i dist/cowboy-banner-1.0.0-1*.rpm
 ```
 
-Нужен `rpmbuild` (Fedora: `dnf install rpm-build`).
+Два пути сборки. Основной - **nfpm**: он читает `packaging/nfpm.yaml`, который
+генерируется из `debian/control` и дерева файлов, поэтому rpm и deb всегда
+описаны одинаково. Бинарник nfpm кладётся в `packaging/tools/` (папка в
+.gitignore) или в PATH:
+
+```bash
+# https://github.com/goreleaser/nfpm/releases -> nfpm_<версия>_Linux_x86_64.tar.gz
+tar xf nfpm_*.tar.gz && sudo mv nfpm /usr/local/bin/
+```
+
+Запасной путь - `rpmbuild` по spec-файлу (Fedora: `dnf install rpm-build`).
+Spec лежит рядом и описывает тот же пакет, так что дистрибутив может
+пересобрать его сам.
 
 ### Nix
 
@@ -105,6 +117,23 @@ node packaging\update-manifests.js    # вписывает sha256 в маниф�
 Пока Releases не опубликованы, в манифестах стоит заглушка
 `ЗАМЕНИТЬ_НА_SHA256` — `update-manifests.js` заменяет её настоящим хешем
 после сборки.
+
+## Публикация релиза
+
+Артефакты из `dist/` выкладываются в Releases на GitHub (тег `v1.0.0`):
+
+```bash
+powershell -File packaging\upload-assets.ps1 -Tag v1.0.0
+```
+
+Скрипт берёт токен из того же хранилища, где git держит учётные данные
+(Git Credential Manager), поэтому отдельно логиниться не нужно. После загрузки
+он сам скачивает файлы обратно и сверяет хеши с локальными. Важная
+деталь: эндпоинт загрузки ждёт **сырой бинарник** в теле запроса, а не
+multipart-форму - иначе GitHub сохранит всю multipart-обёртку как файл.
+
+После публикации в манифестах Scoop и winget должен стоять настоящий
+sha256 - он ставится автоматически командой `update-manifests.js`.
 
 ## Проверки
 

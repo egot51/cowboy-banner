@@ -25,10 +25,13 @@ step "2/5  собираем .deb"
 node packaging/build-deb.js
 
 step "3/5  собираем .rpm"
-if have rpmbuild; then
+# Два пути: nfpm (один конфиг на все форматы) или rpmbuild по spec-файлу.
+if have nfpm; then
+    node packaging/gen-nfpm.js
+    nfpm pkg --packager rpm --config packaging/nfpm.yaml --target dist
+elif have rpmbuild; then
     rm -rf dist/rpm
     mkdir -p dist/rpm/SOURCES
-    # rpmbuild ждёт исходники отдельным файлом.
     tar czf "dist/rpm/SOURCES/cowboy-banner-1.0.0.tar.gz" \
         --transform 's,^,cowboy-banner-1.0.0/,' linux/files
     rpmbuild --define "_topdir $PWD/dist/rpm" \
@@ -36,7 +39,8 @@ if have rpmbuild; then
              -ba packaging/rpm/cowboy-banner.spec
     ls -la dist/*.rpm
 else
-    echo "  rpmbuild не найден - .rpm пропущен (Fedora, RHEL, openSUSE)" >&2
+    echo "  nfpm и rpmbuild не найдены - .rpm пропущен" >&2
+    echo "  nfpm: https://github.com/goreleaser/nfpm/releases" >&2
 fi
 
 step "4/5  собираем zip и обновляем манифесты"

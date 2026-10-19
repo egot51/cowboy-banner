@@ -28,7 +28,9 @@ const dosTime = (date) => {
   return { time, day };
 };
 
-const makeZip = (files, date = new Date()) => {
+// Воспроизводимая сборка: SOURCE_DATE_EPOCH задаёт время файлов в архиве.
+const epoch = process.env.SOURCE_DATE_EPOCH ? new Date(Number(process.env.SOURCE_DATE_EPOCH) * 1000) : new Date();
+const makeZip = (files, date = epoch) => {
   const { time, day } = dosTime(date);
   const locals = [];
   const centrals = [];

@@ -30,13 +30,29 @@ node (Join-Path $root 'packaging\build-deb.js')
 Step '3/5  собираем zip для Windows-пакетов'
 node (Join-Path $root 'packaging\build-zip.js')
 
-Step '4/5  обновляем манифесты (sha256)'
-node (Join-Path $root 'packaging\update-manifests.js')
+Step '4/5  собираем .rpm (nfpm)'
+$nfpm = Get-Command nfpm -ErrorAction SilentlyContinue
+if (-not $nfpm) {
+    $local = Join-Path $root 'packaging\tools\nfpm.exe'
+    if (Test-Path $local) { $nfpm = $local }
+}
+if ($nfpm) {
+    node (Join-Path $root 'packaging\gen-nfpm.js')
+    & $nfpm pkg --packager rpm --config (Join-Path $root 'packaging\nfpm.yaml') --target (Join-Path $root 'dist')
+} else {
+    Write-Host '  nfpm не найден - .rpm пропущен.' -ForegroundColor Yellow
+    Write-Host '  Скачать: https://github.com/goreleaser/nfpm/releases (файл nfpm_<версия>_Windows_x86_64.zip)' -ForegroundColor Yellow
+    Write-Host '  Положить бинарник в packaging\tools\ или в PATH.' -ForegroundColor Yellow
+}
 
-Step '5/5  тесты'
+Step '5/5  обновляем манифесты (sha256) и прогоняем тесты'
+node (Join-Path $root 'packaging\update-manifests.js')
 node (Join-Path $root 'tests\test-deb.js')
 if (Test-Path (Join-Path $root 'tests\test-packages.js')) {
     node (Join-Path $root 'tests\test-packages.js')
+}
+if (Test-Path (Join-Path $root 'tests\test-rpm.py')) {
+    python (Join-Path $root 'tests\test-rpm.py')
 }
 
 Write-Host ''

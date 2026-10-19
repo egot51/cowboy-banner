@@ -25,7 +25,9 @@ const payloadDir = path.resolve(opt("--payload", path.join(REPO, "linux", "files
 const outDir = path.resolve(opt("--out", path.join(REPO, "dist")));
 const debianDir = path.join(__dirname, "debian");
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cowboy-deb-"));
-const mtime = opt("--source-date", String(Math.floor(Date.now() / 1000)));
+// Воспроизводимая сборка: если задан SOURCE_DATE_EPOCH, используем его,
+// иначе - текущее время. Одинаковый вход даёт одинаковый .deb побайтово.
+const mtime = opt("--source-date", process.env.SOURCE_DATE_EPOCH || String(Math.floor(Date.now() / 1000)));
 
 // --- control -------------------------------------------------------------
 let control = fs.readFileSync(path.join(debianDir, "control"), "utf8");

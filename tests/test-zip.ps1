@@ -68,7 +68,7 @@ try {
 "@ | Out-Null
     $bannerText = [IO.File]::ReadAllText($textFile, [Text.Encoding]::UTF8)
     Expect 'баннер печатается (есть приветствие)' ($bannerText -match 'ДОБР') 'True'
-    Expect 'баннер содержит подпись картинки' ($bannerText -match 'T H E|D E E P|N E O N|G H O S T') 'True'
+    Expect 'баннер содержит подпись картинки' ($bannerText -match 'T H E|D E E P|N E O N|G H O S T|S O M E W H E R E') 'True'
     $esc = ([regex]::Matches($bannerText, "\x1b")).Count
     $seq = ([regex]::Matches($bannerText, "\x1b\[[0-9;]*m")).Count
     Expect 'битых ANSI-кодов нет' ($esc - $seq) 0

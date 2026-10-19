@@ -10,3 +10,4 @@ tools/scene-*.txt
 # node_modules, если появятся.
 node_modules/
 dist/
+packaging/tools/
