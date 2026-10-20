@@ -78,10 +78,15 @@ jobs:
             "$nfpm" pkg --packager rpm --config packaging/nfpm.yaml --target dist
           else
             # Linux: собираем штатным rpmbuild по spec-файлу.
+            # В Ubuntu rpmbuild входит в пакет rpm, который установлен выше;
+            # отдельного rpm-build там нет.
             # В архиве должно быть cowboy-banner-1.0.0/files/..., а не
             # cowboy-banner-1.0.0/linux/files/... - иначе %install не найдёт
             # дерево и сборка упадёт.
-            sudo apt-get install -y rpm-build
+            if ! command -v rpmbuild > /dev/null; then
+              echo "rpmbuild не найден: поставьте пакет rpm" >&2
+              exit 1
+            fi
             mkdir -p dist/rpm/SOURCES
             tar czf "dist/rpm/SOURCES/cowboy-banner-1.0.0.tar.gz" \
               --transform 's,^,cowboy-banner-1.0.0/,' -C linux files
