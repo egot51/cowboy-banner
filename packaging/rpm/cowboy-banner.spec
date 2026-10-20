@@ -46,14 +46,17 @@ cp -a files/usr files/etc %{buildroot}/
 # относиться к buildroot. Макросы %license и %doc здесь не используются:
 # они ищут каталоги с версией (usr/share/licenses/cowboy-banner-1.0.0/...),
 # а дерево файлов одинаковое для всех дистрибутивов.
+# %dir помечает сам каталог, но содержимое перечисляют отдельно - глобом.
 %files
 /usr/share/licenses/cowboy-banner/LICENSE
 /usr/share/doc/cowboy-banner/README.md
 /usr/bin/cowboy-banner
 %dir /usr/share/cowboy-banner
-%dir /usr/share/cowboy-banner/art
-%dir /usr/share/cowboy-banner/data
 /usr/share/cowboy-banner/profile.ps1
+%dir /usr/share/cowboy-banner/art
+/usr/share/cowboy-banner/art/*
+%dir /usr/share/cowboy-banner/data
+/usr/share/cowboy-banner/data/*
 /usr/share/man/man1/cowboy-banner.1*
 %dir /usr/lib/cowboy-banner
 /usr/lib/cowboy-banner/install.sh
