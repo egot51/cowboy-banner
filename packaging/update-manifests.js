@@ -21,22 +21,31 @@ if (!fs.existsSync(zipPath)) {
 const sha256 = crypto.createHash("sha256").update(fs.readFileSync(zipPath)).digest("hex");
 const PLACEHOLDER = "ЗАМЕНИТЬ_НА_SHA256";
 
+// В манифестах хеш может быть уже проставлен - тогда надо не искать
+// заглушку, а заменить прежнее значение: иначе манифест молча расходится
+// с собранным архивом.
 const targets = [
-  path.join(REPO, "packaging", "scoop", "cowboy-banner.json"),
-  path.join(REPO, "packaging", "winget", "manifests", "e", "egot51", "cowboy-banner", version, "egot51.cowboy-banner.installer.yaml"),
+  {
+    path: path.join(REPO, "packaging", "scoop", "cowboy-banner.json"),
+    replace: (text) => text.replace(/("hash"\s*:\s*")[^"]*(")/, `$1${sha256}$2`),
+  },
+  {
+    path: path.join(REPO, "packaging", "winget", "manifests", "e", "egot51", "cowboy-banner", version, "egot51.cowboy-banner.installer.yaml"),
+    replace: (text) => text.replace(/(InstallerSha256:\s*)\S+/, `$1${sha256}`),
+  },
 ];
 
 let changed = 0;
 for (const t of targets) {
-  const before = fs.readFileSync(t, "utf8");
-  const after = before.split(PLACEHOLDER).join(sha256);
+  const before = fs.readFileSync(t.path, "utf8");
+  const after = t.replace(before);
   if (before !== after) {
-    fs.writeFileSync(t, after, "utf8");
+    fs.writeFileSync(t.path, after, "utf8");
     changed++;
-    console.log(`  обновлён ${path.relative(REPO, t)}`);
+    console.log(`  обновлён ${path.relative(REPO, t.path)}`);
   } else {
-    console.log(`  без изменений ${path.relative(REPO, t)}`);
+    console.log(`  без изменений ${path.relative(REPO, t.path)}`);
   }
 }
 console.log(`  sha256: ${sha256}`);
-if (!changed) console.log("  (хеш уже был проставлен)");
+if (!changed) console.log("  (хеш уже совпадал)");

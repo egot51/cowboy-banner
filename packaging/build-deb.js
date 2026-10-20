@@ -100,8 +100,10 @@ fs.writeFileSync(path.join(ctrlDir, "md5sums"), md5sums + "\n");
 
 // --- tar -----------------------------------------------------------------
 // Пишем tar (ustar) сами: 512-байтные заголовки, данные с выравниванием.
+// typeflag: 5 - каталог, 0 - обычный файл. Если каталог пометить как файл,
+// dpkg создаст вместо него пустой файл с именем каталога.
 const octal = (value, width) => value.toString(8).padStart(width - 1, "0") + "\0";
-const tarHeader = (name, size, mode) => {
+const tarHeader = (name, size, mode, isDir = false) => {
   const h = Buffer.alloc(512);
   h.write(name, 0, "utf8");                       // имя (до 100 байт)
   h.write(octal(mode, 8), 100, "ascii");         // права
@@ -110,7 +112,7 @@ const tarHeader = (name, size, mode) => {
   h.write(size.toString(8).padStart(11, "0") + "\0", 124, "ascii");
   h.write(octal(Number(mtime), 12), 136, "ascii");
   h.write("        ", 148, "ascii");              // chksum - заполним ниже
-  h.write("0", 156, "ascii");                    // тип: обычный файл
+  h.write(isDir ? "5" : "0", 156, "ascii");      // тип записи
   h.write("ustar\0" + "00", 257, "ascii");
   h.write("root", 265, "ascii");
   h.write("root", 297, "ascii");
@@ -130,13 +132,14 @@ const tarGz = (dir, execNames = new Set()) => {
       const full = path.join(current, e.name);
       const rel = `${prefix}${e.name}`;
       if (e.isDirectory()) {
-        parts.push(tarHeader(`${rel}/`, 0, 0o755));
+        parts.push(tarHeader(`${rel}/`, 0, 0o755, true));
         walk(full, `${rel}/`);
       } else {
         const data = fs.readFileSync(full);
-        // Исполняемым делаем то, что лежит в bin/, и явно перечисленные
-        // файлы (maintainer-скрипты в control.tar.gz).
-        const exec = rel.includes("/bin/") || execNames.has(e.name);
+        // Исполняемым делаем всё, что лежит в bin/ и lib/, все скрипты .sh
+        // и перечисленные файлы (maintainer-скрипты в control.tar.gz):
+        // иначе postinst не сможет запустить хуки установки.
+        const exec = /\/(bin|sbin|lib)\//.test(rel) || rel.endsWith(".sh") || execNames.has(e.name);
         parts.push(tarHeader(rel, data.length, exec ? 0o755 : 0o644));
         parts.push(data);
         const pad = data.length % 512;

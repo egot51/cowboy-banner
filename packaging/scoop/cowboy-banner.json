@@ -4,7 +4,7 @@
     "homepage": "https://github.com/egot51/cowboy-banner",
     "license": "MIT",
     "url": "https://github.com/egot51/cowboy-banner/releases/download/v1.0.0/cowboy-banner-1.0.0-windows.zip",
-    "hash": "629240d2afbafcfa72691b934b8eb32ba2878a60205ecd2006a1d8fc005d079b",
+    "hash": "f8366b0c7398c7f14c976d1db62dc2d90f739c0af95c1239fb5530b690e428f9",
     "bin": "cowboy-banner.ps1",
     "pre_install": "powershell -NoProfile -ExecutionPolicy Bypass -File \"$dir\\install.ps1\"",
     "uninstaller": "powershell -NoProfile -ExecutionPolicy Bypass -File \"$dir\\uninstall.ps1\"",

@@ -116,6 +116,9 @@ jobs:
           node tests/test-packages.js
           node tests/verify-paint.js
 
+      - name: Тесты - содержимое всех форматов
+        run: python tests/test-packages-content.py
+
       - name: Тесты - rpm
         run: python tests/test-rpm.py
 
