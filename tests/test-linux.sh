@@ -76,7 +76,7 @@ check "за 40 запусков cyber показаны обе картинки" 
 
 echo "== локали =="
 check "LANG=C -> английская поговорка" "$(runq LANG=C LC_ALL=C COWBOY_ALWAYS=1 | tail -1 | grep -c '[A-Za-z]\{4,\}')" "1"
-check "LANG=ru_RU.UTF-8 -> русская поговорка" "$(runq LANG=ru_RU.UTF-8 LC_ALL= COWBOY_ALWAYS=1 | tail -1 | grep -c '[А-Яа-я]')" "1"
+check "LANG=ru_RU.UTF-8 -> русская поговорка" "$(runq LANG=ru_RU.UTF-8 LC_ALL= COWBOY_ALWAYS=1 | tail -1 | grep -c '«')" "1"
 
 echo "== молчание при перенаправлении =="
 check "без COWBOY_ALWAYS в пайпе - тишина" "$(runq | wc -c)" "0"
