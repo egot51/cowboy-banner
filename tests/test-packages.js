@@ -5,6 +5,19 @@ const path = require("path");
 const { execFileSync } = require("child_process");
 
 const REPO = path.join(__dirname, "..");
+
+// На Windows это powershell (5.1), на Linux - pwsh (7). Проверки .ps1 и XML
+// завязаны на него, поэтому ищем один раз в начале.
+const ps = (() => {
+  for (const c of ["powershell", "pwsh"]) {
+    try {
+      execFileSync(c, ["-NoProfile", "-Command", "$PSVersionTable.PSVersion.Major"], { stdio: "pipe" });
+      return c;
+    } catch {}
+  }
+  return null;
+})();
+
 let pass = 0;
 let fail = 0;
 const ok = (m) => { pass++; console.log(`  OK   ${m}`); };
@@ -33,15 +46,19 @@ for (const t of ["<id>cowboy-banner</id>", "<version>1.0.0</version>", "<license
   has(`есть ${t}`, nuspec, t);
 }
 // XML должен разбираться: проверяем через .NET.
-try {
-  execFileSync("powershell", [
-    "-NoProfile", "-Command",
-    `[xml]$x = Get-Content -Raw '${path.join(REPO, "packaging/chocolatey/cowboy-banner.nuspec")}'; ` +
-    `if ($x.package.metadata.id -ne 'cowboy-banner') { exit 1 }`,
-  ], { stdio: "pipe" });
-  ok("nuspec - корректный XML, id читается");
-} catch {
-  bad("nuspec не разбирается как XML");
+if (ps) {
+  try {
+    execFileSync(ps, [
+      "-NoProfile", "-Command",
+      `[xml]$x = Get-Content -Raw '${path.join(REPO, "packaging/chocolatey/cowboy-banner.nuspec")}'; ` +
+      `if ($x.package.metadata.id -ne 'cowboy-banner') { exit 1 }`,
+    ], { stdio: "pipe" });
+    ok("nuspec - корректный XML, id читается");
+  } catch {
+    bad("nuspec не разбирается как XML");
+  }
+} else {
+  bad("нет PowerShell - проверка nuspec пропущена");
 }
 
 // --- winget --------------------------------------------------------------
@@ -103,16 +120,6 @@ for (const f of [
 
 // --- PowerShell-скрипты: должны разбираться ------------------------------
 console.log("\nPowerShell");
-// На Windows это powershell (5.1), на Linux - pwsh (7).
-const ps = (() => {
-  for (const c of ["powershell", "pwsh"]) {
-    try {
-      execFileSync(c, ["-NoProfile", "-Command", "$PSVersionTable.PSVersion.Major"], { stdio: "pipe" });
-      return c;
-    } catch {}
-  }
-  return null;
-})();
 if (!ps) {
   bad("не найден PowerShell - проверки .ps1 пропущены");
 } else {
