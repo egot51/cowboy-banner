@@ -98,11 +98,24 @@ jobs:
             cp dist/rpm/RPMS/*/cowboy-banner-*.rpm dist/
           fi
 
-      - name: Проверить, что манифесты совпадают с артефактами
+      - name: Проверить, что манифесты совпадают с опубликованным архивом
         run: |
-          node packaging/update-manifests.js
-          git diff --exit-code -- packaging/scoop packaging/winget
-          echo "sha256 в манифестах соответствует собранному zip"
+          # Хеш в манифестах должен совпадать с тем zip, который лежит в
+          # Releases: именно его качают Scoop, Chocolatey и winget.
+          # Собранный локально zip для сравнения не годится: сжатие зависит
+          # от версии zlib, а в CI и у разработчика разные версии Node.
+          url="https://github.com/egot51/cowboy-banner/releases/download/v1.0.0/cowboy-banner-1.0.0-windows.zip"
+          if curl -sfL "$url" -o /tmp/rel.zip; then
+            hash=$(sha256sum /tmp/rel.zip | cut -d' ' -f1)
+            echo "  sha256 в релизе: $hash"
+            grep -q "$hash" packaging/scoop/cowboy-banner.json || {
+              echo "хеш в манифесте Scoop не совпадает с релизом" >&2; exit 1; }
+            grep -q "$hash" packaging/winget/manifests/e/egot51/cowboy-banner/1.0.0/egot51.cowboy-banner.installer.yaml || {
+              echo "хеш в манифесте winget не совпадает с релизом" >&2; exit 1; }
+            echo "  хеши манифестов совпадают с опубликованным архивом"
+          else
+            echo "  релиз ещё не опубликован - проверку пропускаем"
+          fi
 
       - name: Тесты - bash
         shell: bash

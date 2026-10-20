@@ -72,6 +72,24 @@ jobs:
         run: |
           ./packaging/upload-assets.ps1 -Tag "${{ github.event.inputs.tag || github.ref_name }}" -Token $env:GH_TOKEN
 
+      - name: Обновить манифесты под опубликованный архив
+        shell: bash
+        run: |
+          # Сжатие зависит от версии zlib, поэтому хеш собранного здесь архива
+          # может отличаться от локальной сборки. Манифесты должны описывать
+          # ровно тот файл, который лежит в Releases.
+          node packaging/update-manifests.js
+          if ! git diff --quiet -- packaging/scoop packaging/winget; then
+            git config user.name "cowboy-banner-bot"
+            git config user.email "200380906+egot51@users.noreply.github.com"
+            git add packaging/scoop packaging/winget
+            git commit -m "Манифесты: sha256 опубликованного архива"
+            git push
+            echo "  манифесты обновлены и отправлены"
+          else
+            echo "  манифесты уже совпадают с релизом"
+          fi
+
       - name: Приложить артефакты к сборке
         uses: actions/upload-artifact@v4
         with:
