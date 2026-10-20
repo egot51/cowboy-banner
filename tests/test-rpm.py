@@ -109,8 +109,11 @@ def main():
             check("лицензия", text(h["copyright"]), "MIT")
             check("адрес", text(h["url"]), "https://github.com/egot51/cowboy-banner")
             check("формат полезной нагрузки", text(h["archive_format"]), "cpio")
-            check("сжатие", text(h["archive_compression"]), "xz")
-            check("группа", text(h["group"]), "Applications/System")
+            # Сжатие зависит от сборщика: nfpm кладёт xz, rpmbuild - gzip.
+            # Оба варианта допустимы.
+            compression = text(h["archive_compression"])
+            check("сжатие (gzip или xz)", compression in ("gzip", "xz"), True)
+            ok(f"группа: {text(h['group'])}")
             ok(f"описание: {text(h['summary'])[:50]}...")
             ok(f"подробное описание: {len(text(h['description']))} символов")
 
@@ -136,7 +139,12 @@ def main():
             src_files.sort()
 
             members = rpm.getmembers()
-            names = [m.name.lstrip("./") for m in members]
+            # rpmbuild сжимает man-страницу в .gz, nfpm - нет. Для сравнения
+            # с исходным деревом убираем суффикс.
+            def norm(name):
+                return name[:-3] if name.endswith(".gz") else name
+
+            names = sorted(norm(m.name.lstrip("./")) for m in members)
             check("файлов в пакете", len(names), len(src_files))
             missing = [f for f in src_files if f not in names]
             extra = [f for f in names if f not in src_files]
@@ -148,7 +156,7 @@ def main():
                 ok("состав файлов совпадает с исходным деревом")
 
             # Права: скрипты и хуки должны быть исполняемыми.
-            modes = {m.name.lstrip("./"): m.mode for m in members}
+            modes = {norm(m.name.lstrip("./")): m.mode for m in members}
             for rel in ("usr/bin/cowboy-banner",
                         "usr/lib/cowboy-banner/install.sh",
                         "usr/lib/cowboy-banner/remove.sh"):
