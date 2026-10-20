@@ -12,9 +12,11 @@ Summary:        Цветной ASCII-баннер при старте терми
 License:        MIT
 URL:            https://github.com/egot51/cowboy-banner
 Source0:        %{name}-%{version}.tar.gz
-# BuildArch: noarch задаётся внутри %ifarch noarch - иначе rpmbuild
-# собирает пакет под архитектуру машины и ругается.
+# BuildArch: noarch задаётся вне ветки %ifarch noarch - иначе на обычной
+# сборке (x86_64) строка не выполнится и пакет соберётся под архитектуру
+# машины вместо noarch.
 %ifarch noarch
+%else
 BuildArch:      noarch
 %endif
 Requires:       bash

@@ -39,6 +39,8 @@ elif have rpmbuild; then
     rpmbuild --define "_topdir $PWD/dist/rpm" \
              --define "_sourcedir $PWD/dist/rpm/SOURCES" \
              -ba packaging/rpm/cowboy-banner.spec
+    # rpmbuild кладёт пакет в dist/rpm/RPMS/<arch>/, а тест ждёт его в dist/
+    cp dist/rpm/RPMS/*/cowboy-banner-*.rpm dist/ 2>/dev/null || :
     ls -la dist/*.rpm
 else
     echo "  nfpm и rpmbuild не найдены - .rpm пропущен" >&2

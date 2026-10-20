@@ -93,6 +93,9 @@ jobs:
             rpmbuild --define "_topdir $PWD/dist/rpm" \
                      --define "_sourcedir $PWD/dist/rpm/SOURCES" \
                      -ba packaging/rpm/cowboy-banner.spec
+            # rpmbuild кладёт пакет в dist/rpm/RPMS/<arch>/, а тест ждёт его
+            # в dist/ - копируем.
+            cp dist/rpm/RPMS/*/cowboy-banner-*.rpm dist/
           fi
 
       - name: Проверить, что манифесты совпадают с артефактами
