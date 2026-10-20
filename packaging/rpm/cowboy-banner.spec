@@ -38,16 +38,17 @@ rm -rf %{buildroot}
 mkdir -p %{buildroot}
 cp -a files/usr files/etc %{buildroot}/
 
+# В секции %files пути указываются ОТНОСИТЕЛЬНО buildroot.
+# С префиксом %{buildroot} rpmbuild ищет файлы по несуществующим путям.
 %files
-%license %{buildroot}/usr/share/licenses/cowboy-banner/LICENSE
-%doc %{buildroot}/usr/share/doc/cowboy-banner/README.md
+%license usr/share/licenses/cowboy-banner/LICENSE
+%doc usr/share/doc/cowboy-banner/README.md
 %{_bindir}/cowboy-banner
-%{_datadir}/cowboy-banner/art
-%{_datadir}/cowboy-banner/data
+%dir %{_datadir}/cowboy-banner
+%dir %{_datadir}/cowboy-banner/art
+%dir %{_datadir}/cowboy-banner/data
 %{_datadir}/cowboy-banner/profile.ps1
 %{_mandir}/man1/cowboy-banner.1*
-%{_datadir}/licenses/cowboy-banner/LICENSE
-%{_datadir}/doc/cowboy-banner/README.md
 %dir %{_libdir}/cowboy-banner
 %{_libdir}/cowboy-banner/install.sh
 %{_libdir}/cowboy-banner/remove.sh
