@@ -1,8 +1,9 @@
-﻿# Тест Linux-профиля cowboy-banner на Windows PowerShell.
-# Логика та же, отличаются только пути и переменные окружения.
+﻿# Тест профиля cowboy-banner для PowerShell (работает и на Windows, и на Linux).
 $ErrorActionPreference = 'Stop'
 $root    = "$PSScriptRoot\..\linux\files\usr\share\cowboy-banner"
-$stateD  = Join-Path $env:TEMP ('cowboy-test-' + [Guid]::NewGuid().ToString('N').Substring(0, 8))
+# Каталог для временных файлов: на Windows это %TEMP%, на Linux - /tmp.
+$tmpRoot = if ($env:TEMP) { $env:TEMP } else { '/tmp' }
+$stateD  = Join-Path $tmpRoot ('cowboy-test-' + [Guid]::NewGuid().ToString('N').Substring(0, 8))
 New-Item -ItemType Directory -Path $stateD -Force | Out-Null
 
 $env:COWBOY_ROOT          = $root

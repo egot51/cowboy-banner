@@ -1,0 +1,79 @@
+name: Release
+
+# Публикация релиза по тегу: v1.0.0 и т.д.
+# Собирает все форматы и выкладывает их в Releases, затем проверяет, что
+# скачивается ровно то, что собрано.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Тег релиза'
+        required: true
+        default: 'v1.0.0'
+
+permissions:
+  contents: write
+
+env:
+  SOURCE_DATE_EPOCH: "1792400000"
+
+jobs:
+  release:
+    name: Сборка и публикация
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Установить зависимости
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm
+          pip install rpmfile
+
+      - name: Скачать nfpm
+        shell: bash
+        run: |
+          curl -sSL -o nfpm.zip \
+            https://github.com/goreleaser/nfpm/releases/download/v2.48.0/nfpm_2.48.0_Linux_x86_64.tar.gz
+          tar xf nfpm.zip nfpm
+          sudo mv nfpm /usr/local/bin/
+
+      - name: Собрать все форматы
+        run: |
+          node tools/gen-linux.js
+          node packaging/build-deb.js
+          node packaging/build-zip.js
+          node packaging/gen-nfpm.js
+          nfpm pkg --packager rpm --config packaging/nfpm.yaml --target dist
+          node packaging/update-manifests.js
+
+      - name: Проверки артефактов
+        run: |
+          node tests/test-deb.js
+          python tests/test-rpm.py
+          bash tests/test-linux.sh
+          bash tests/test-pkgbuild.sh
+
+      - name: Опубликовать в Releases
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ./packaging/upload-assets.ps1 -Tag "${{ github.event.inputs.tag || github.ref_name }}" -Token $env:GH_TOKEN
+
+      - name: Приложить артефакты к сборке
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-packages
+          path: dist/

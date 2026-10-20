@@ -1,5 +1,8 @@
 # cowboy-banner
 
+[![CI](https://github.com/egot51/cowboy-banner/actions/workflows/ci.yml/badge.svg)](https://github.com/egot51/cowboy-banner/actions/workflows/ci.yml)
+[![Релиз](https://img.shields.io/github/v/release/egot51/cowboy-banner?label=релиз)](https://github.com/egot51/cowboy-banner/releases/latest)
+
 Цветной ASCII-баннер при запуске терминала: случайная картинка внутри
 случайной темы, приветствие по времени суток и случайная поговорка по теме.
 

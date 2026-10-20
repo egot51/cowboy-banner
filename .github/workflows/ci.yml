@@ -1,0 +1,123 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  # Фиксированное время сборки: одинаковый вход даёт одинаковые артефакты,
+  # и sha256 в манифестах остаётся верным.
+  SOURCE_DATE_EPOCH: "1792400000"
+
+jobs:
+  test:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux (Ubuntu)
+            os: ubuntu-latest
+          - name: Windows
+            os: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Установить rpm и rpmfile (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm
+          pip install rpmfile
+
+      - name: Установить rpmfile (Windows)
+        if: runner.os == 'Windows'
+        run: pip install rpmfile
+
+      - name: Скачать nfpm для сборки rpm (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          curl -sSL -o nfpm.zip \
+            https://github.com/goreleaser/nfpm/releases/download/v2.48.0/nfpm_2.48.0_Windows_x86_64.zip
+          unzip -oq nfpm.zip nfpm.exe -d packaging/tools
+
+      - name: Сгенерировать дерево файлов пакета
+        run: node tools/gen-linux.js
+
+      - name: Проверить, что пакет в репозитории совпадает с исходниками
+        run: |
+          git diff --exit-code -- linux/
+          echo "дерево linux/ совпадает с тем, что даёт генератор"
+
+      - name: Собрать .deb и .zip
+        run: |
+          node packaging/build-deb.js
+          node packaging/build-zip.js
+
+      - name: Собрать .rpm
+        shell: bash
+        run: |
+          if [ -x packaging/tools/nfpm.exe ] || command -v nfpm > /dev/null; then
+            nfpm=$(command -v nfpm || echo packaging/tools/nfpm.exe)
+            node packaging/gen-nfpm.js
+            "$nfpm" pkg --packager rpm --config packaging/nfpm.yaml --target dist
+          else
+            # Linux: собираем штатным rpmbuild по spec-файлу
+            sudo apt-get install -y rpm-build
+            mkdir -p dist/rpm/SOURCES
+            tar czf "dist/rpm/SOURCES/cowboy-banner-1.0.0.tar.gz" \
+              --transform 's,^,cowboy-banner-1.0.0/,' linux/files
+            rpmbuild --define "_topdir $PWD/dist/rpm" \
+                     --define "_sourcedir $PWD/dist/rpm/SOURCES" \
+                     -ba packaging/rpm/cowboy-banner.spec
+          fi
+
+      - name: Проверить, что манифесты совпадают с артефактами
+        run: |
+          node packaging/update-manifests.js
+          git diff --exit-code -- packaging/scoop packaging/winget
+          echo "sha256 в манифестах соответствует собранному zip"
+
+      - name: Тесты - bash
+        shell: bash
+        run: |
+          bash tests/test-linux.sh
+          bash tests/test-pkgbuild.sh
+
+      - name: Тесты - node
+        run: |
+          node tests/test-deb.js
+          node tests/test-packages.js
+          node tests/verify-paint.js
+
+      - name: Тесты - rpm
+        run: python tests/test-rpm.py
+
+      - name: Тесты - профиль PowerShell
+        shell: pwsh
+        run: ./tests/test-linux.ps1
+
+      - name: Тесты - Windows-пакет
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: ./tests/test-zip.ps1
+
+      - name: Сохранить артефакты
+        uses: actions/upload-artifact@v4
+        with:
+          name: packages-${{ matrix.os }}
+          path: dist/
+          if-no-files-found: error

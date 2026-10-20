@@ -13,7 +13,10 @@
 param(
     [string]$Tag = 'v1.0.0',
     [string]$Repo = 'egot51/cowboy-banner',
-    [string]$Dist = 'dist'
+    [string]$Dist = 'dist',
+    # Токен. Если не задан - берётся из хранилища учётных данных git
+    # (в CI его нет, там токен передаётся явно).
+    [string]$Token = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -21,16 +24,17 @@ $root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $distPath = if ([IO.Path]::IsPathRooted($Dist)) { $Dist } else { Join-Path $root $Dist }
 
 # --- токен -----------------------------------------------------------------
-$cred = "protocol=https`nhost=github.com`n`n" | git credential fill 2>$null
-$token = $null
-foreach ($line in $cred) { if ($line -like 'password=*') { $token = $line.Substring(9) } }
-if (-not $token) {
-    Write-Host 'не найдены учётные данные для github.com - сначала сделайте git push' -ForegroundColor Red
+if (-not $Token) {
+    $cred = "protocol=https`nhost=github.com`n`n" | git credential fill 2>$null
+    foreach ($line in $cred) { if ($line -like 'password=*') { $Token = $line.Substring(9) } }
+}
+if (-not $Token) {
+    Write-Host 'нет токена: задайте -Token или сделайте git push, чтобы git сохранил учётные данные' -ForegroundColor Red
     exit 1
 }
 
 $headers = @{
-    Authorization = "Bearer $token"
+    Authorization = "Bearer $Token"
     Accept = 'application/vnd.github+json'
     'X-GitHub-Api-Version' = '2022-11-28'
     'User-Agent' = 'cowboy-banner-publisher'
@@ -62,7 +66,7 @@ if (-not $curl) { Write-Host 'curl.exe не найден' -ForegroundColor Red; 
 foreach ($a in $assets) {
     Write-Host "  загружаю $($a.Name) ($([math]::Round($a.Length/1KB,1)) КБ) ..." -ForegroundColor Cyan
     $out = & $curl.Source -sS --fail-with-body -X POST `
-        -H "Authorization: Bearer $token" `
+        -H "Authorization: Bearer $Token" `
         -H "Accept: application/vnd.github+json" `
         -H "X-GitHub-Api-Version: 2022-11-28" `
         -H "User-Agent: cowboy-banner-publisher" `

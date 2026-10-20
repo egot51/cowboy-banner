@@ -103,21 +103,35 @@ for (const f of [
 
 // --- PowerShell-скрипты: должны разбираться ------------------------------
 console.log("\nPowerShell");
-const psFiles = [
-  "packaging/windows/install-profile.ps1",
-  "packaging/windows/remove-profile.ps1",
-  "packaging/windows/cowboy-banner.ps1",
-  "windows/install.ps1",
-  "windows/uninstall.ps1",
-];
-const parseCmd = psFiles
-  .map((f) => `$e=$null;$t=$null;[System.Management.Automation.Language.Parser]::ParseFile('${path.join(REPO, f)}',[ref]$t,[ref]$e)|Out-Null;if($e.Count){Write-Output ($e[0].Message);exit 1}`)
-  .join(";");
-try {
-  execFileSync("powershell", ["-NoProfile", "-Command", parseCmd], { stdio: "pipe" });
-  ok(`${psFiles.length} скриптов разбираются без ошибок`);
-} catch (e) {
-  bad("ошибка разбора: " + (e.stdout ? e.stdout.toString() : e.message));
+// На Windows это powershell (5.1), на Linux - pwsh (7).
+const ps = (() => {
+  for (const c of ["powershell", "pwsh"]) {
+    try {
+      execFileSync(c, ["-NoProfile", "-Command", "$PSVersionTable.PSVersion.Major"], { stdio: "pipe" });
+      return c;
+    } catch {}
+  }
+  return null;
+})();
+if (!ps) {
+  bad("не найден PowerShell - проверки .ps1 пропущены");
+} else {
+  const psFiles = [
+    "packaging/windows/install-profile.ps1",
+    "packaging/windows/remove-profile.ps1",
+    "packaging/windows/cowboy-banner.ps1",
+    "windows/install.ps1",
+    "windows/uninstall.ps1",
+  ];
+  const parseCmd = psFiles
+    .map((f) => `$e=$null;$t=$null;[System.Management.Automation.Language.Parser]::ParseFile('${path.join(REPO, f)}',[ref]$t,[ref]$e)|Out-Null;if($e.Count){Write-Output ($e[0].Message);exit 1}`)
+    .join(";");
+  try {
+    execFileSync(ps, ["-NoProfile", "-Command", parseCmd], { stdio: "pipe" });
+    ok(`${psFiles.length} скриптов разбираются без ошибок`);
+  } catch (e) {
+    bad("ошибка разбора: " + (e.stdout ? e.stdout.toString() : e.message));
+  }
 }
 
 // BOM у .ps1 обязателен: без него PowerShell 5.1 читает кириллицу как ANSI
