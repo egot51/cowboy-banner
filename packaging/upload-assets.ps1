@@ -60,25 +60,35 @@ foreach ($a in @($release.assets)) {
 if ($release.assets.Count) { Start-Sleep -Seconds 3 }
 
 $upload = $release.upload_url -replace '\{.*\}$', ''
-$curl = (Get-Command curl.exe -ErrorAction SilentlyContinue)
-if (-not $curl) { Write-Host 'curl.exe не найден' -ForegroundColor Red; exit 1 }
+
+# Загрузка идёт через HttpClient, а не через curl: curl.exe есть только
+# на Windows, а workflow публикации работает на Linux.
+# В Windows PowerShell 5.1 сборку System.Net.Http надо подгрузить вручную.
+try { Add-Type -AssemblyName System.Net.Http -ErrorAction Stop } catch { }
+$client = [System.Net.Http.HttpClient]::new()
+$client.DefaultRequestHeaders.Authorization = [System.Net.Http.Headers.AuthenticationHeaderValue]::new('Bearer', $Token)
+$client.DefaultRequestHeaders.Add('Accept', 'application/vnd.github+json')
+$client.DefaultRequestHeaders.Add('X-GitHub-Api-Version', '2022-11-28')
+$client.DefaultRequestHeaders.Add('User-Agent', 'cowboy-banner-publisher')
 
 foreach ($a in $assets) {
     Write-Host "  загружаю $($a.Name) ($([math]::Round($a.Length/1KB,1)) КБ) ..." -ForegroundColor Cyan
-    $out = & $curl.Source -sS --fail-with-body -X POST `
-        -H "Authorization: Bearer $Token" `
-        -H "Accept: application/vnd.github+json" `
-        -H "X-GitHub-Api-Version: 2022-11-28" `
-        -H "User-Agent: cowboy-banner-publisher" `
-        -H "Content-Type: application/octet-stream" `
-        --data-binary "@$($a.FullName)" `
-        "$upload`?name=$([uri]::EscapeDataString($a.Name))" 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "    ОШИБКА: $out" -ForegroundColor Red
+    $bytes = [IO.File]::ReadAllBytes($a.FullName)
+    $content = [System.Net.Http.ByteArrayContent]::new($bytes)
+    $content.Headers.ContentType = [System.Net.Http.Headers.MediaTypeHeaderValue]::new('application/octet-stream')
+    try {
+        $resp = $client.PostAsync("$upload`?name=$([uri]::EscapeDataString($a.Name))", $content).GetAwaiter().GetResult()
+        if (-not $resp.IsSuccessStatusCode) {
+            Write-Host "    ОШИБКА: $([int]$resp.StatusCode) $($resp.Content.ReadAsStringAsync().GetAwaiter().GetResult())" -ForegroundColor Red
+            exit 1
+        }
+        Write-Host '    готово' -ForegroundColor Green
+    } catch {
+        Write-Host "    ОШИБКА: $($_.Exception.Message)" -ForegroundColor Red
         exit 1
     }
-    Write-Host '    готово' -ForegroundColor Green
 }
+$client.Dispose()
 
 # --- проверка: что скачивается то, что загрузили ---------------------------
 Write-Host ''
@@ -88,8 +98,8 @@ $bad = 0
 foreach ($a in @($release.assets)) {
     $local = Join-Path $distPath $a.name
     if (-not (Test-Path $local)) { continue }
-    $tmp = Join-Path $env:TEMP ("dl-" + $a.name)
-    & $curl.Source -sS -L -o $tmp "$($a.browser_download_url)?nocache=$([guid]::NewGuid().ToString('N'))"
+    $tmp = Join-Path ([IO.Path]::GetTempPath()) ("dl-" + $a.name)
+    Invoke-WebRequest -Uri "$($a.browser_download_url)?nocache=$([guid]::NewGuid().ToString('N'))" -OutFile $tmp -UseBasicParsing
     $h1 = (Get-FileHash $tmp -Algorithm SHA256).Hash
     $h2 = (Get-FileHash $local -Algorithm SHA256).Hash
     if ($h1 -eq $h2) {
