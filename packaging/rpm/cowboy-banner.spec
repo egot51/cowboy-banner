@@ -12,7 +12,11 @@ Summary:        Цветной ASCII-баннер при старте терми
 License:        MIT
 URL:            https://github.com/egot51/cowboy-banner
 Source0:        %{name}-%{version}.tar.gz
+# BuildArch: noarch задаётся внутри %ifarch noarch - иначе rpmbuild
+# собирает пакет под архитектуру машины и ругается.
+%ifarch noarch
 BuildArch:      noarch
+%endif
 Requires:       bash
 Requires:       coreutils
 Recommends:     zsh
@@ -38,24 +42,24 @@ rm -rf %{buildroot}
 mkdir -p %{buildroot}
 cp -a files/usr files/etc %{buildroot}/
 
-# В секции %files пути указываются ОТНОСИТЕЛЬНО buildroot.
-# С префиксом %{buildroot} rpmbuild ищет файлы по несуществующим путям.
-# Там, где путь нестандартный, пишем буквально: на Fedora %{_libdir} - это
-# /usr/lib64, а %{_datadir} - /usr/share, и дерево файлов другое.
+# В секции %files пути должны быть абсолютными (с ведущим слэшем) и
+# относиться к buildroot. Макросы %license и %doc здесь не используются:
+# они ищут каталоги с версией (usr/share/licenses/cowboy-banner-1.0.0/...),
+# а дерево файлов одинаковое для всех дистрибутивов.
 %files
-%license usr/share/licenses/cowboy-banner/LICENSE
-%doc usr/share/doc/cowboy-banner/README.md
-%{_bindir}/cowboy-banner
-%dir usr/share/cowboy-banner
-%dir usr/share/cowboy-banner/art
-%dir usr/share/cowboy-banner/data
-usr/share/cowboy-banner/profile.ps1
-%{_mandir}/man1/cowboy-banner.1*
-%dir usr/lib/cowboy-banner
-usr/lib/cowboy-banner/install.sh
-usr/lib/cowboy-banner/remove.sh
-%dir etc/skel/Default/.config/powershell
-etc/skel/Default/.config/powershell/Microsoft.PowerShell_profile.ps1
+/usr/share/licenses/cowboy-banner/LICENSE
+/usr/share/doc/cowboy-banner/README.md
+/usr/bin/cowboy-banner
+%dir /usr/share/cowboy-banner
+%dir /usr/share/cowboy-banner/art
+%dir /usr/share/cowboy-banner/data
+/usr/share/cowboy-banner/profile.ps1
+/usr/share/man/man1/cowboy-banner.1*
+%dir /usr/lib/cowboy-banner
+/usr/lib/cowboy-banner/install.sh
+/usr/lib/cowboy-banner/remove.sh
+%dir /etc/skel/Default/.config/powershell
+/etc/skel/Default/.config/powershell/Microsoft.PowerShell_profile.ps1
 
 %post
 /usr/lib/cowboy-banner/install.sh
