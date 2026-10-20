@@ -75,11 +75,14 @@ jobs:
             node packaging/gen-nfpm.js
             "$nfpm" pkg --packager rpm --config packaging/nfpm.yaml --target dist
           else
-            # Linux: собираем штатным rpmbuild по spec-файлу
+            # Linux: собираем штатным rpmbuild по spec-файлу.
+            # В архиве должно быть cowboy-banner-1.0.0/files/..., а не
+            # cowboy-banner-1.0.0/linux/files/... - иначе %install не найдёт
+            # дерево и сборка упадёт.
             sudo apt-get install -y rpm-build
             mkdir -p dist/rpm/SOURCES
             tar czf "dist/rpm/SOURCES/cowboy-banner-1.0.0.tar.gz" \
-              --transform 's,^,cowboy-banner-1.0.0/,' linux/files
+              --transform 's,^,cowboy-banner-1.0.0/,' -C linux files
             rpmbuild --define "_topdir $PWD/dist/rpm" \
                      --define "_sourcedir $PWD/dist/rpm/SOURCES" \
                      -ba packaging/rpm/cowboy-banner.spec

@@ -32,8 +32,10 @@ if have nfpm; then
 elif have rpmbuild; then
     rm -rf dist/rpm
     mkdir -p dist/rpm/SOURCES
+    # В архиве должно быть cowboy-banner-1.0.0/files/..., а не
+    # cowboy-banner-1.0.0/linux/files/... - иначе %install не найдёт дерево.
     tar czf "dist/rpm/SOURCES/cowboy-banner-1.0.0.tar.gz" \
-        --transform 's,^,cowboy-banner-1.0.0/,' linux/files
+        --transform 's,^,cowboy-banner-1.0.0/,' -C linux files
     rpmbuild --define "_topdir $PWD/dist/rpm" \
              --define "_sourcedir $PWD/dist/rpm/SOURCES" \
              -ba packaging/rpm/cowboy-banner.spec
