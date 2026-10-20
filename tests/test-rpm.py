@@ -16,6 +16,13 @@ import tempfile
 
 import rpmfile
 
+# Консоль Windows по умолчанию отдаёт cp1252, и русский текст в проверках
+# падает с UnicodeEncodeError. Просим UTF-8 с заменой непечатных символов.
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
 
 def extract_cpio(data, dest):
     """Распаковка cpio (формат newc) из полезной нагрузки RPM."""

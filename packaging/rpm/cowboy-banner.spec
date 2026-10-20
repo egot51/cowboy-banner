@@ -40,20 +40,22 @@ cp -a files/usr files/etc %{buildroot}/
 
 # В секции %files пути указываются ОТНОСИТЕЛЬНО buildroot.
 # С префиксом %{buildroot} rpmbuild ищет файлы по несуществующим путям.
+# Там, где путь нестандартный, пишем буквально: на Fedora %{_libdir} - это
+# /usr/lib64, а %{_datadir} - /usr/share, и дерево файлов другое.
 %files
 %license usr/share/licenses/cowboy-banner/LICENSE
 %doc usr/share/doc/cowboy-banner/README.md
 %{_bindir}/cowboy-banner
-%dir %{_datadir}/cowboy-banner
-%dir %{_datadir}/cowboy-banner/art
-%dir %{_datadir}/cowboy-banner/data
-%{_datadir}/cowboy-banner/profile.ps1
+%dir usr/share/cowboy-banner
+%dir usr/share/cowboy-banner/art
+%dir usr/share/cowboy-banner/data
+usr/share/cowboy-banner/profile.ps1
 %{_mandir}/man1/cowboy-banner.1*
-%dir %{_libdir}/cowboy-banner
-%{_libdir}/cowboy-banner/install.sh
-%{_libdir}/cowboy-banner/remove.sh
-%dir %{_datadir}/skel/Default/.config/powershell
-%{_datadir}/skel/Default/.config/powershell/Microsoft.PowerShell_profile.ps1
+%dir usr/lib/cowboy-banner
+usr/lib/cowboy-banner/install.sh
+usr/lib/cowboy-banner/remove.sh
+%dir etc/skel/Default/.config/powershell
+etc/skel/Default/.config/powershell/Microsoft.PowerShell_profile.ps1
 
 %post
 /usr/lib/cowboy-banner/install.sh
